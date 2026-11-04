@@ -3,7 +3,7 @@ import {username,verifyNearMessage} from './near-identity.mjs';
 import {nearAccountOK} from './near-core.mjs';
 import {initialPorti,nearRpc} from './near-services';
 import {mutate,readWorkspace} from './workspace';
-import {DomainError} from './engine.mjs';
+import {DomainError} from './errors.mjs';
 function db(){if(!env.DB)throw new DomainError('STORAGE_UNAVAILABLE','Profile storage is not configured.',503);return env.DB;}
 export async function myProfile(ownerId:string){return db().prepare('SELECT username, wallet, verified_at AS verifiedAt, version FROM profiles WHERE owner_id = ?').bind(ownerId).first();}
 export async function resolveUsername(value:string){let name;try{name=username(value);}catch(e:any){throw new DomainError('INVALID_USERNAME',e.message);}const p:any=await db().prepare('SELECT username, wallet, verified_at AS verifiedAt, version FROM profiles WHERE username = ?').bind(name).first();if(!p)throw new DomainError('USERNAME_NOT_FOUND',`@${name} has no verified wallet on this platform. Ask for their NEAR address or invite them to link a profile.`,404);return p;}

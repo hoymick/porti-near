@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./cartoon.css";
-import "./scout.css";
+import "./workspace.css";
 import "./near.css";
 import "./near-theme.css";
 

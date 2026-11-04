@@ -1,6 +1,6 @@
 # Porti for NEAR v0.6
 
-The primary application is now Porti, a NEAR mainnet companion. The former Robinhood scout, WIF vault and perpetual planner remain in source history/legacy files and are not the current homepage.
+Porti is a NEAR mainnet companion. This specification describes the core NEAR product; Telegram development remains in progress as documented in CHECKPOINT.md.
 
 ## Delivered interfaces
 
@@ -23,13 +23,13 @@ Transfers to @username resolve on the server. The resolved wallet and mapping ve
 
 ## Connections and secrets
 
-NEAR AI Cloud, optional NearBlocks key and optional NEAR RPC are configured through server-verified forms. Keys and credential-bearing RPC URLs are AES-GCM encrypted at rest with per-owner additional authenticated data and are never returned to the client. The NEAR configuration derives its encryption key with a separate domain from the legacy vault settings. RPC URLs are restricted to documented NEAR/FastNEAR/QuickNode providers and checked for mainnet. Keys are not stored in browser storage, code or Git.
+NEAR AI Cloud, optional NearBlocks key and optional NEAR RPC are configured through server-verified forms. Keys and credential-bearing RPC URLs are AES-GCM encrypted at rest with per-owner additional authenticated data and are never returned to the client. Settings encryption derives its key from PORTI_SETTINGS_KEY with a Porti-specific domain. Existing encrypted credentials from a different scheme require migration or re-entry. RPC URLs are restricted to documented NEAR/FastNEAR/QuickNode providers and checked for mainnet. Keys are not stored in browser storage, code or Git.
 
 No NEAR AI API key is configured yet. The UI explains how to connect through the provider dashboard. The verify action sends a bounded small request with user-supplied credentials, visibly explaining usage of provider credits. No credits or account subscriptions were purchased. No user wallet was connected, linked or used to transfer funds by Codex.
 
 ## Validation and limits
 
-Pure tests cover account validation, exact integer conversions, USD rounding/caps, native/FT action construction, malicious receipt mismatch, NEP-413 message/domain/nonce/account tampering and NEAR holder maps; prior 21 scout/risk tests are retained. The profile migration was applied to an in-memory SQLite database and username/owner/wallet uniqueness checked. TypeScript and production build are required before publication.
+Pure tests cover account validation, exact integer conversions, USD rounding/caps, native/FT action construction, malicious receipt mismatch, NEP-413 message/domain/nonce/account tampering and NEAR holder maps. NEAR-only risk, notification policy and storage tests accompany the core checks. The profile migration was applied to an in-memory SQLite database and username/owner/wallet uniqueness checked. TypeScript and production build are required before publication.
 
 A live provider inference run and funded wallet acceptance run cannot be completed without the user's NEAR AI connection and wallet approval. Public external APIs were inaccessible from development probes. No live success is claimed from fixtures.
 

@@ -1,5 +1,5 @@
 import {owner,readWorkspace,mutate,sameOrigin,errorResponse} from '../../../lib/workspace';
-import {DomainError} from '../../../lib/engine.mjs';
+import {DomainError} from '../../../lib/errors.mjs';
 import {initialPorti,safePorti,savePortiSettings,nearInvestigate,saveObservation,addNearWatch,prepareNearTransfer,validateNearDraft,reconcileNearTransfer,recordSubmittedHash,nearRpc} from '../../../lib/near-services';
 import {nearChat} from '../../../lib/near-agent';
 import {myProfile,profileChallenge,verifyProfile,unlinkProfile,resolveUsername} from '../../../lib/near-profile';

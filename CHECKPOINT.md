@@ -1,18 +1,20 @@
-# Porti source checkpoint - 4 November 2026
+# Porti development checkpoint
 
-Work paused at the owner's request to share the current code.
+Source checkpoint prepared for collaborator review on 4 November 2026. This repository contains only the Porti NEAR product and its supporting application infrastructure.
 
-## Stable baseline
-NEAR companion, NEAR AI Cloud adapter, holder research, partial Rug Guard, wallet-approved transfer reviews, verified @username wallet profiles, and NEAR mint theme. Last deployed source: afb54a376f1d5e52022f52b4da213d8f01031aa2.
+## Current work
 
-## Work in progress: Telegram
-Includes bot configuration, one-use linking, app confirmation, preferences, outbox, polling runner, and a generated migration. These changes have NOT been deployed, acceptance-tested, or scheduled. No Telegram bot token has been configured.
+Telegram development is paused. Source includes dedicated-bot verification, a short-lived private connection link, confirmation in Porti, alert preferences, an outbox and a polling runner. These are in-progress implementations, not a claim of working production Telegram delivery. No bot token or background schedule has been configured, and live delivery has not been acceptance-tested.
 
-Known verification issue at pause: TypeScript reports response JSON typed as unknown in app/telegram-settings.tsx. Resolve that and review delivery, retry, concurrency and digest logic before treating this as ready. No code was changed after the pause request except this handoff note.
+The existing NEAR companion, profile proofs, research adapters and transfer-review logic are retained. NEAR AI Cloud needs credentials, the last public RPC check failed, and funded wallet acceptance remains outstanding.
 
-NEAR AI still needs a configured key; the last public RPC test failed. No funded wallet acceptance test has been run.
+## Before the next deployment
 
-## Development
-Node >=22.13.0. Install with npm ci; type-check with npx tsc --noEmit; tests via npm test; build via npm run build. The original hosting depends on Cloudflare Workers/D1 and Sites authentication. A standalone host requires equivalent identity/storage configuration. Do not deploy as a public app without reviewing authorization, particularly the shared Telegram runner route.
+1. Set a high-entropy `PORTI_SETTINGS_KEY` and the real `PORTI_APP_URL` in secure runtime settings. Existing encrypted credentials from another scheme require migration or re-entry.
+2. Apply database migrations in order to a test database.
+3. Review Telegram queue concurrency, retry behavior, digest overflow, retention and command processing.
+4. Configure a dedicated bot without another webhook or polling consumer; verify linking, account confirmation, pause, resume, stop and delivery.
+5. Establish and verify the private unattended updater path, then create a background schedule. Until then, checks require manual invocation.
+6. Complete real inference and wallet-controlled acceptance scenarios before financial use.
 
-No runtime secrets, user databases, dependency directories or generated build output are included. Existing legacy WIF modules are retained as source history alongside the active NEAR product.
+The shared Telegram runner relies on an owner-private hosting access boundary. Do not expose it publicly without independent runner authorization. The live deployment was not changed by this repository cleanup.

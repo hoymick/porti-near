@@ -1,4 +1,0 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {escapeHtml,reportHtml,readDocument} from '../lib/documents.mjs';
-test('report escapes content and never executes user markup',()=>{const html=reportHtml({title:'<script>alert(1)</script>',output:{summary:'<img src=x>',changes:[{kind:'added',before:'',after:'<iframe>',refs:['B1']}],method:'text matching',generatedAt:'now'}},[]);assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;iframe&gt;'));assert.equal(escapeHtml('&"'),'&amp;&quot;');});
-test('text upload enforces type, size and readable content',async()=>{assert.equal(await readDocument(new File(['hello'],'a.txt')),'hello');await assert.rejects(()=>readDocument(new File(['x'],'a.exe')),/Choose a text PDF/);await assert.rejects(()=>readDocument(new File([' '],'a.txt')),/empty/);});

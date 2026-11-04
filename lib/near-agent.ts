@@ -1,4 +1,4 @@
-import {DomainError} from './engine.mjs';
+import {DomainError} from './errors.mjs';
 import {mutate} from './workspace';
 import {fetchJSON,initialPorti,portiConfig,nearTool,tokenPrice} from './near-services';
 import {nearAccountOK} from './near-core.mjs';

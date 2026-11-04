@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { getChatGPTUser } from '../app/chatgpt-auth';
-import { DomainError } from './engine.mjs';
+import { DomainError } from './errors.mjs';
 import { readWorkspace as readStore, mutateWorkspace } from './store.mjs';
 
 export async function owner() {
@@ -18,10 +18,6 @@ export async function readWorkspace(ownerId: string) {
 }
 export async function mutate<T>(ownerId: string, change: (state: any) => T): Promise<{state: any, result: T}> {
   return mutateWorkspace(env.DB, ownerId, change);
-}
-export function publicState(state: any) {
-  const {liveTasks,rpcCipher,scout,porti,...rest}=state;
-  return { ...rest, tasks: state.tasks.map(({ documents, ...task }: any) => ({ ...task, documentLengths: documents?.map((d: string) => d.length) || [] })) };
 }
 export function errorResponse(e: any) {
   if (!(e instanceof DomainError)) console.error('Workspace request failed', e?.message);

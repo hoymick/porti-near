@@ -1,11 +1,11 @@
 import {env} from 'cloudflare:workers';
-import {DomainError} from './engine.mjs';
+import {DomainError} from './errors.mjs';
 import {mutate,readWorkspace} from './workspace';
 import {nearAccountOK,parseHolders,decimal,usdRaw,units,buildTransfer,nearHashOK,matchesNearTransaction} from './near-core.mjs';
 import {tokenRisk} from './token-risk.mjs';
 const runtime=env as unknown as Record<string,string>;
 export function initialPorti(){return{watches:[],snapshots:{},alerts:[],messages:[],drafts:[],receipts:[],model:'zai-org/GLM-5.1-FP8',lastChat:0};}
-async function secretKey(){if(!runtime.WIF_ATTESTOR_KEY)throw new DomainError('SETUP_REQUIRED','Secure settings are not configured.',503);const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('porti-near-settings-v1:'+runtime.WIF_ATTESTOR_KEY));return crypto.subtle.importKey('raw',digest,'AES-GCM',false,['encrypt','decrypt']);}
+async function secretKey(){if(!runtime.PORTI_SETTINGS_KEY)throw new DomainError('SETUP_REQUIRED','Secure settings are not configured.',503);const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('porti-settings-v1:'+runtime.PORTI_SETTINGS_KEY));return crypto.subtle.importKey('raw',digest,'AES-GCM',false,['encrypt','decrypt']);}
 export async function encryptNear(value:string,id:string){const iv=crypto.getRandomValues(new Uint8Array(12));const data=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(id)},await secretKey(),new TextEncoder().encode(value));return{iv:[...iv],data:btoa(String.fromCharCode(...new Uint8Array(data)))};}
 export async function decryptNear(value:any,id:string){return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(value.iv),additionalData:new TextEncoder().encode(id)},await secretKey(),Uint8Array.from(atob(value.data),c=>c.charCodeAt(0))));}
 export function safePorti(state:any){const p=state.porti||initialPorti();const{aiKeyCipher,indexKeyCipher,rpcCipher,chatLock,profileChallenge,...rest}=p;return{...rest,messages:p.messages.filter((m:any)=>m.role==='user'||m.role==='assistant').map(({tool_calls,...m}:any)=>m),aiConfigured:!!(aiKeyCipher||runtime.NEAR_AI_API_KEY),indexConfigured:!!(indexKeyCipher||runtime.NEARBLOCKS_API_KEY),rpcConfigured:!!(rpcCipher||runtime.NEAR_RPC_URL),network:'mainnet'};}
