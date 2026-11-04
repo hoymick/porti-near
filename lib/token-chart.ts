@@ -4,7 +4,7 @@ import { candles, reading } from "./chart-core.mjs";
 import { DomainError } from "./errors.mjs";
 const cache = new Map<string, { at: number; data: any }>();
 let providerCooldown = 0;
-async function get(path: string) {
+export async function get(path: string) {
   try {
     if (providerCooldown > Date.now())
       throw new DomainError(
