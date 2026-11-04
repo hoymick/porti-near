@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
+import Staking from "./staking";
+import TopTraders from "./top-traders";
 import PortiNavigation from "./porti-navigation";
 import "./porti-navigation.css";
 import "./porti-apps.css";
@@ -55,6 +57,7 @@ const navigation = [
   ["Rug Guard", ShieldCheck],
   ["Watchlist", Eye],
   ["Wallets", Wallet],
+  ["Stake NEAR", Coins],
   ["Transfers", Send],
   ["Telegram", Bell],
   ["Friends", MessageCircle],
@@ -159,6 +162,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     const token = new URL(window.location.href).searchParams.get("token");
     if(new URL(window.location.href).searchParams.get("screen")==="status")setView("System status");
     if(new URL(window.location.href).searchParams.get("screen")==="apps")setView("Porti Apps");
+    if(new URL(window.location.href).searchParams.get("screen")==="staking")setView("Stake NEAR");
     if (nearAccountOK(token)) {
       setView("Investigate token");
       setAccount(token!);
@@ -524,6 +528,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
   const heading: any = {
     "Porti Apps": "Your favorite NEAR projects, closer together.",
     "System status": "Connections, acceptance evidence and operational limits.",
+    "Stake NEAR": "Review. Approve. Verify your stake.",
     Wallets: "A home for your NEAR wallets.",
     Friends: "Your circle. Your conversations.",
     Telegram: "A signal wherever you are.",
@@ -1068,7 +1073,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                               openReport(demo.snapshot);
                             }}
                           >
-                            Open fictional holder map
+                            Open sample risk report
                           </button>
                         </div>
                       </section>
@@ -1590,15 +1595,16 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                     </section>
                   )}
                   {view === "Investigate token" && contextToken && !report && (
-                    <TokenChart contract={contextToken} sample={sample} />
+                    <><TokenChart contract={contextToken} sample={sample} /><section className="sc-panel"><TopTraders contract={contextToken} sample={sample}/></section></>
                   )}
-                  {view === "Porti Apps" && <PortiApps sample={sample} />}
+                  {view === "Porti Apps" && <PortiApps sample={sample} onStake={()=>go("Stake NEAR")} />}
                   {view === "System status" && !sample && <SystemStatus />}
                   {view === "System status" && sample && (
                     <section className="sc-panel">
                       <h2>Switch to Live to inspect real system status.</h2>
                     </section>
                   )}
+                  {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && (
                     <WalletHub
                       roles={p.walletRoles || {}}
