@@ -1890,6 +1890,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
         </main>
       </div>
       <PortiCompanion
+        showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat}
         setOpen={setOpenChat}
         messages={sample ? [] : p.messages}

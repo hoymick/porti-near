@@ -1,2 +1,33 @@
 .porti-chat-image{display:block;max-width:100%;width:auto;max-height:240px;object-fit:contain;border-radius:12px;margin:8px 0}.porti-image-bar{padding:8px 14px;max-height:150px;overflow:auto;border-top:1px solid #d1e4d8}.porti-image-bar .porti-chat-image{max-height:75px}.porti-image-bar small{display:block;font-size:9px;line-height:1.5;margin-top:5px}.porti-image-upload label{display:inline-flex;font-size:11px;cursor:pointer;gap:6px;align-items:center}.porti-image-upload input{max-width:175px;font-size:10px}.porti-image-upload p{font-size:11px;color:#854a32}.porti-buy{padding:18px;border:1px solid #afcbb8;border-radius:16px;background:#edfff4;margin:12px 0;min-width:0}.porti-buy h3{font-size:23px;margin:10px 0}.porti-buy label{display:grid;gap:6px;font-size:12px;margin:12px 0}.porti-buy input,.porti-buy select{width:100%;min-width:0;border:1px solid #aac2b0;padding:10px;border-radius:10px;background:white}.porti-buy p{font-size:12px;line-height:1.7}.porti-buy small{font-size:10px;line-height:1.7;display:block;margin-top:12px}.porti-buy a{text-decoration:underline}.porti-buy .primary,.porti-buy .secondary{margin:8px 0;max-width:100%;white-space:normal}.porti-chat .porti-buy .primary{border:1px solid #254634;border-radius:18px;padding:10px 14px;background:#00ec97;font-size:11px;font-weight:700}
 .porti-market-table{width:100%;border-collapse:collapse;font-size:12px}.porti-market-table th,.porti-market-table td{padding:14px 10px;border-bottom:1px solid #d0e0d7;text-align:left;white-space:nowrap}.porti-market-table td:first-child{max-width:230px;white-space:normal;overflow-wrap:anywhere}.porti-market-table small{display:block;font-size:10px;margin-top:6px}.porti-market-table a{display:block;font-size:10px;margin-top:7px;text-decoration:underline}.market-up{color:#087747}.market-down{color:#af4141}.porti-market-table .secondary{font-size:10px;padding:7px}
+
+/* Swap workspace: explicit groups prevent inline controls from touching. */
+.scout-app.near-app .porti-swap{padding:32px;display:flex;flex-direction:column;gap:28px}
+.porti-swap .swap-intro{display:grid;gap:12px;max-width:880px}
+.scout-app.near-app .porti-swap .swap-intro h2{margin:0;line-height:1.2}
+.scout-app.near-app .porti-swap p{margin:0;line-height:1.7}
+.porti-swap .swap-explainer{font-size:12px;line-height:1.7}
+.porti-swap .swap-explainer summary{cursor:pointer;font-weight:800;color:#237456;list-style-position:inside;padding:4px 0}
+.porti-swap .swap-explainer[open] p{padding-top:10px}
+.porti-swap .swap-wallet{display:flex;align-items:center;flex-wrap:wrap;gap:16px 24px;background:#edfff5;border:1px solid #bedbca;border-radius:16px;padding:20px}
+.porti-swap .swap-wallet p{flex:1;min-width:190px;overflow-wrap:anywhere}
+.porti-swap .swap-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.scout-app.near-app .porti-swap .swap-fields label:not(.sc-check){display:flex;flex-direction:column;gap:10px;margin:0;min-width:0;font-size:12px;line-height:1.5}
+.porti-swap .swap-wide{grid-column:1/-1}
+.scout-app.near-app .porti-swap input:not([type=checkbox]),.scout-app.near-app .porti-swap select{margin:0;min-height:48px;min-width:0;font-size:13px;padding:12px 14px;text-overflow:ellipsis}
+.porti-swap .swap-catalog-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid #dbe7df;font-size:13px;font-weight:800}
+.porti-swap .swap-help{font-size:11px!important;padding:14px 16px;background:#f3f7f4;border-radius:12px}
+.porti-swap .swap-actions{display:flex;align-items:center;flex-wrap:wrap;gap:16px;padding-top:24px;border-top:1px solid #dbe7df}
+.scout-app.near-app .porti-swap button.primary,.scout-app.near-app .porti-swap button.secondary{min-height:44px;line-height:1.45;white-space:normal;margin:0;max-width:100%}
+.porti-swap .swap-result{display:flex;flex-direction:column;align-items:flex-start;gap:16px;margin:0;overflow-wrap:anywhere;min-width:0}
+.porti-swap .swap-result label:not(.sc-check){width:100%;display:grid;gap:10px;margin:0}
+.porti-swap .swap-result h3{margin:0}
+.porti-swap .swap-result .sc-check{align-items:flex-start;width:100%;line-height:1.7;margin:0;padding:18px 0;gap:12px}
+.porti-swap .swap-result .sc-check input{flex-shrink:0;margin-top:3px}
+.porti-swap .swap-history{border-top:1px solid #dbe7df;padding-top:28px;display:grid;gap:16px}
+.scout-app.near-app .porti-swap .swap-history h3{margin:0}
+.porti-swap .swap-saved-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.porti-swap .swap-saved-list:empty{display:none}
+.porti-swap .swap-saved-list button{text-align:left;border-radius:14px;padding:16px}
+.porti-swap .swap-empty{padding:20px;border:1px dashed #bdd1c4;border-radius:14px;background:#f7faf8;font-size:12px!important}
+@media(max-width:700px){.scout-app.near-app .porti-swap{padding:22px 18px;gap:24px}.porti-swap .swap-fields{grid-template-columns:minmax(0,1fr);gap:20px}.porti-swap .swap-wallet{padding:16px}.porti-swap .swap-actions{flex-direction:column;align-items:stretch}.porti-swap .swap-actions>button{width:100%}.porti-swap .swap-catalog-bar{align-items:flex-start;flex-direction:column}.porti-swap .swap-wallet>button{width:100%}.porti-swap .swap-history{padding-top:24px}}
