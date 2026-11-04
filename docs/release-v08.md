@@ -12,7 +12,7 @@ Fund from main prefills a 1 NEAR transfer to the verified agent account, using t
 
 ## Token market readings
 
-Token reports request GeckoTerminal pools for an exact NEAR contract. The selected pool has the largest reported reserve among matching returned candidates. The base/quote side is matched against the exact token relationship. The service accepts 15-minute, one-hour and four-hour candles, drops unfinished and invalid observations, sorts and deduplicates them, and limits history to 200 candles. Responses are cached for two minutes with a bounded cache.
+Token reports request GeckoTerminal pools for an exact NEAR contract. The selected pool has the largest reported reserve among matching returned candidates. The base/quote side is matched against the exact token relationship. The service accepts 15-minute, one-hour and four-hour candles, drops invalid observations and marks the final forming candle, sorts and deduplicates them, and limits history to 200 candles. Responses are cached for 45 seconds with a bounded cache. The visible chart refreshes every minute, has a manual refresh button, and shows the latest available pool price with its fetch time. Indicators use completed candles only.
 
 The SVG chart shows OHLC and volume. EMA20/50 use SMA seeds; RSI14 uses Wilder smoothing. Prior 20-candle lows/highs provide descriptive support/resistance. Insufficient history, stale observations and trading gaps are visible. These indicators are not predictions, trade recommendations or rug probabilities. Missing provider coverage produces an error rather than fictional live candles. Walkthrough charts are explicitly fictional.
 
@@ -39,6 +39,8 @@ The current UI supports per-check category delivery. Quiet hours and daily diges
 POST /api/porti/telegram/run uses the owner-private Sites dispatcher boundary; it does not impersonate a visitor. The shared endpoint must not be exposed publicly without independent authorization. It refreshes one oldest due watch for each of up to three bot workspaces per run. A five-minute global lease and bot leases bound overlapping work. Each watch is attempted at most once per 15 minutes; large watchlists rotate more slowly. Failed reads produce no invented observations. GET reads persisted run metadata.
 
 The UI reports a schedule only after a real task ID has been registered, and records actual checks separately. Credentials are never put in schedule prompts. User setup still requires a bot token and private account linking.
+
+The hosted scheduler permits a maximum of one run per hour. An enabled hourly task is registered; manual checks remain available between runs. The service writer was exercised with private service access and its persisted result read back. No bot was configured during this check, so delivery itself remains unverified.
 
 ## Deployment and validation
 
