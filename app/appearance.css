@@ -19,3 +19,8 @@ html[data-porti-theme=dark] .near-app .sc-panel svg text{fill:#bfd7c8}
 html[data-porti-theme=dark] .near-app .porti-brand{color:#e8f5ed!important}
 html[data-porti-theme=dark] .near-app .porti-floating-hint{background:#21392a;color:#d8f4e2;border-color:#527b60}
 html[data-porti-theme=dark] .near-app .porti-subnav{border-color:#3c6650}
+
+html[data-porti-theme=dark] .near-app :is(.sc-chain,.sc-hero,.near-hero,.apps-hero,.porti-apps-hero){background:#1c3828!important;border-color:#52745d!important;color:#d9f4e3!important}
+html[data-porti-theme=dark] .near-app .breadcrumb>span{color:#d9f4e3!important}
+html[data-porti-theme=dark] .near-app .sidebar nav .section-current:not(.active){background:#254632!important;color:#d9f4e3!important}
+html[data-porti-theme=dark] .near-app .sidebar .sc-chain small{color:#b4c8ba!important}
