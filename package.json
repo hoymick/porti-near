@@ -1,9 +1,9 @@
 {
   "name": "porti",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "engines": {
-    "node": ">=22.16.0"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
@@ -20,6 +20,7 @@
     "@base-ui/react": "^1.7.0",
     "@hookform/resolvers": "^5.7.1",
     "@hot-labs/near-connect": "0.12.0",
+    "@seams/wallet": "0.34.0",
     "@shadcn/react": "^0.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -29,6 +30,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
+    "near-api-js": "7.4.0",
     "next": "16.4.5",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
@@ -41,8 +43,7 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "3.6.0",
     "vaul": "^1.1.2",
-    "zod": "4.6.7",
-    "@seams/wallet": "0.34.0"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.67.0",

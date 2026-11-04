@@ -57,7 +57,8 @@ export default function SystemStatus() {
           <>
             <div className="porti-metrics">
               {[
-                ["Internal wallet service", data.providers.embeddedWalletConfigured ? "Configured · owner acceptance required" : "Owner service setup required"],
+                ["Free device wallet", "Available · compatible browser required"],
+                ["Optional managed passkey service", data.providers.embeddedWalletConfigured ? "Configured · owner acceptance required" : "Owner service setup required"],
                 ["Private image storage", data.providers.imagesConfigured ? "Configured" : "Setup required"],
                 ["X OAuth", data.providers.xConfigured ? "Configured · test linking" : "Owner credentials required"],
                 ["MoonPay checkout", data.providers.moonpayConfigured ? "Configured · test checkout" : "Owner setup required"],

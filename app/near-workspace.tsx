@@ -625,7 +625,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           </button>
           <ThemeControl/>
         <div className="sc-version">
-            NEAR AI Cloud<span>v0.13</span>
+            NEAR AI Cloud<span>v0.14</span>
           </div>
         </div>
       </aside>
@@ -1912,7 +1912,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           </footer>
         </main>
       </div>
-      <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onDisconnected={()=>{if(wallet?.kind==="porti-embedded"){setWallet(null);setWalletAccount("")}}}/>
+      <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onRequestOpen={()=>setEmbeddedOpen(true)} onDisconnected={()=>{if(["porti-embedded","porti-local"].includes(wallet?.kind)){setWallet(null);setWalletAccount("")}}}/>
       <PortiCompanion
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat}

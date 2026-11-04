@@ -2,7 +2,7 @@
 
 Porti turns everyday instructions into inspectable NEAR workflows: research a token, follow a wallet, prepare a payment to an @username, buy NEAR through a payment provider, stake, or route NEAR into a supported asset on another network. The movable anime companion uses NEAR AI Cloud; the user keeps wallet signing authority.
 
-**Status: owner-private beta, v0.13.** Internal wallets require a separately provisioned compatible service: [activation guide](docs/internal-wallet.md). A feature being implemented or configured is not evidence of a successful financial transaction. [Judge walkthrough](HACKATHON.md) · [Owner setup](docs/commerce-setup.md) · [Transaction behavior](docs/transactions.md) · [Submission checklist](docs/hackathon-submission.md).
+**Status: owner-private beta, v0.14.** Free device wallets need no provider account; the optional managed passkey service needs separate setup: [activation guide](docs/internal-wallet.md). A feature being implemented or configured is not evidence of a successful financial transaction. [Judge walkthrough](HACKATHON.md) · [Owner setup](docs/commerce-setup.md) · [Transaction behavior](docs/transactions.md) · [Submission checklist](docs/hackathon-submission.md).
 
 ## What you can try
 
@@ -11,7 +11,7 @@ Porti turns everyday instructions into inspectable NEAR workflows: research a to
 | Ask Porti | NEAR AI Cloud tool chat; typed purchase requests open a payment-method card; workflow cards open Swap, Stake, Buy, Transfers or Markets. Pictures use a separate NEAR AI Cloud vision request. |
 | Research | Token metadata, live provider charts, sampled top traders and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
 | Markets | NEAR pool-volume rankings, reported positive 24h gainers, and curated Black Dragon / SHITZU coverage. One returned pool per token; not a complete market-cap ranking or memecoin census. |
-| Wallets / payments | Setup-gated in-app Seams passkey wallet creation/unlock, external wallet connections, NEP-413 wallet-control proofs, username-linked NEAR recipients and explicit wallet-approved transfers. Porti does not generate or retain signing keys. |
+| Wallets / payments | Free browser-local implicit wallets with encrypted backup/restore, optional setup-gated Seams passkey wallets, external wallet connections, NEP-413 wallet-control proofs, username-linked NEAR recipients and explicit wallet-approved transfers. Local wallet keys are generated on the user’s device and stored encrypted in that browser; the server and AI never receive them. |
 | Swap | Native NEAR source; NEAR-mainnet output or supported Ethereum, Base, Arbitrum and BNB Chain output from the live 1Click catalog. Confirmed recipient, NEAR refund address, quote review and separate wallet approval. |
 | Stake | Reviewed liquid staking into the fixed Meta Pool contract. Funded acceptance remains unverified; no built-in exit or native-validator delegation. |
 | Buy NEAR | USD purchase card with card / Apple Pay selection. Signed MoonPay checkout requires merchant credentials, eligibility and trusted customer-IP configuration. No card details in Porti. |
@@ -23,7 +23,7 @@ Porti turns everyday instructions into inspectable NEAR workflows: research a to
 
 ## Run and verify
 
-Use Node.js **22.16+**, the locked npm dependencies and the repository scripts:
+Use Node.js **22.22.2+**, the locked npm dependencies and the repository scripts:
 
 ```sh
 npm ci
@@ -37,7 +37,7 @@ The application targets React/vinext on Cloudflare Workers with D1 (`DB`) and pr
 
 ## Evidence and limitations
 
-93 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
+102 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
 
 The development environment returned HTTP 403 from the 1Click catalog and the holder indexer. Porti reports provider failures without fabricated balances, quotes or safety results. X/MoonPay credentials must be supplied by the owner. Funded swaps, purchases and stakes were not executed during development QA. See [production readiness](docs/production-readiness.md), [transaction limits](docs/transactions.md) and [operations](docs/operations.md).
 

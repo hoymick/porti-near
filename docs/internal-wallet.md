@@ -1,10 +1,33 @@
-# Porti internal agent wallet
+# Porti internal agent wallet — free device option
+
+## Default: free device wallet
+
+Porti now defaults to an Ed25519 NEAR implicit wallet generated in the user’s browser. It needs no Seams project, provider credits or paid wallet API. This generates an address locally; it does not create a funded on-chain account. Native NEAR must be sent to the address to activate it, with network/account-creation charges paid by the sender. Do not send fungible tokens to activate an address.
+
+The browser encrypts the PKCS8 signing key with AES-256-GCM using a random 16-byte salt, a fresh 12-byte IV and PBKDF2-SHA-256 at 600,000 iterations. A unique 12–256 character password is required. Address, public key, format, network and creation metadata are authenticated as encryption additional data. The encrypted record is stored in IndexedDB in a namespace derived from the authenticated Porti owner. This namespace prevents accidental account mixing; it is not an independent security boundary against same-origin JavaScript.
+
+Before funding/linking, the user must download and confirm an encrypted JSON backup. Restore checks the password, authenticated metadata, public-key/address relation and an actual signature before saving; it cannot overwrite an existing wallet. The password is not recoverable. Store backup and password separately. Clearing browser storage, a different device or a changed Site domain requires restoring the backup. A backup does not preserve the app’s transaction journal on another device.
+
+Unlocked signing keys are non-extractable WebCrypto keys kept only in memory. Lock after five minutes, hiding the tab or leaving the wallet’s component. Every ownership signature and outgoing transaction opens a separate visible approval screen; closing the panel, cancellation or expiry blocks signing. The AI has no signing tool. An account is linked only after the server’s existing NEP-413 proof and finalized on-chain access-key verification succeed.
+
+The local adapter supports reviewed Transfer and FunctionCall only, preserves exact action values, and rejects key-management actions. It checks mainnet and the current full-access key. Transactions are serialized with pinned near-api-js, hashed and signed with Ed25519. Before the single broadcast request it durably saves the precomputed transaction hash. Web Locks coordinate signing across tabs on this origin. Pending/unknown requests block another transaction until the original hash has a finalized network outcome. There is no automatic rebroadcast or timeout-based reset. App transfer/stake receipt verification remains separate; a finalized network result alone is not proof of token delivery.
+
+**Threat model:** this is a browser-local software wallet, not the isolated managed-wallet iframe or hardware custody. Compromised same-origin JavaScript, malicious extensions, weak passwords or a compromised unlocked device can compromise funds. Porti does not claim an independent wallet security audit. Use small pilot balances only after owner acceptance.
+
+Acceptance: automated tests cover encryption/restore, wrong passwords, tampering, NEP-413 verification, independently checked transaction signatures, activation gating, cancellation, locking during approval, exact-action binding, durable-journal failure and ambiguous sends. Real browser wallet creation, funded activation, restore on another device and a manually approved finalized transaction still require the wallet owner. No production wallet was created or funded during automated QA.
+
+Requires a secure HTTPS origin, IndexedDB, Ed25519 WebCrypto, Web Locks and access to the public NEAR mainnet RPC. RPC outages remain visible and cannot produce a false activation result.
+
+## Optional managed passkey service
+
+The following sections describe the existing optional Seams integration, not a requirement for free device wallets.
+
 
 ## What changed
 
 The old “Create a NEAR wallet” control was only a link to Meteor. It did not create a wallet inside Porti. The Wallets screen now distinguishes **Create / unlock inside Porti** from connecting an existing external account. The embedded panel supports the Seams registration/unlock interface and Porti ownership verification, with a persistent browser signing session while navigating Porti.
 
-**Activation is blocked until the owner provisions a compatible wallet service.** This repository includes the application integration, not Seams' separate Wallet Gateway, MPC infrastructure, registration sponsorship or hosted wallet-origin runtime. An AI key cannot replace those services. Do not present the setup panel as successful wallet creation.
+**The optional managed passkey option is blocked until the owner provisions a compatible wallet service.** This repository includes the application integration, not Seams' separate Wallet Gateway, MPC infrastructure, registration sponsorship or hosted wallet-origin runtime. An AI key cannot replace those services. Do not present the setup panel as successful wallet creation.
 
 ## Exact runtime settings
 

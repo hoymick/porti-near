@@ -10,7 +10,7 @@ Recommended primary track: AI Security & Defense. Candidate secondary track: Uns
 
 ## Reproduce without funding
 
-Start with Node 22.16+, `npm ci`, `npm run check`, `npm test`, `npm run build`. Expected: type checking, deterministic tests and the Worker/client build pass. Tests use local fixtures and mocks; they are not proof of live external service success.
+Start with Node 22.22.2+, `npm ci`, `npm run check`, `npm test`, `npm run build`. Expected: type checking, deterministic tests and the Worker/client build pass. Tests use local fixtures and mocks; they are not proof of live external service success.
 
 Interactive testing requires the configured host's authenticated identity, D1 and private R2. See docs/commerce-setup.md. The current deployment is owner-private; a private URL is not a publicly accessible judge demo. Do not disable identity or the Telegram runner's private boundary for convenience.
 
@@ -25,6 +25,7 @@ Interactive testing requires the configured host's authenticated identity, D1 an
 | Ask “hi porti buy me $50 worth of NEAR” | Card / Apple Pay choice and verified NEAR destination; absent merchant setup disables signed checkout. No payment is made. |
 | Attach a non-sensitive picture | Private preview; sending it requests NEAR AI Cloud vision. Image instructions cannot authorize a transfer. |
 | Open Profile → X | Connect action is setup-gated until owner credentials are present; no posting/DM permissions requested. |
+| Open Wallets → Create / unlock inside Porti | Free device-wallet creation and encrypted-backup restoration require no Seams credentials. Do not generate a judge’s wallet without them; mainnet activation still needs a network transaction. |
 | Connect wallet using Wallets | User completes wallet-provider connection and a domain/nonce-bound NEP-413 proof. Porti never requests a seed phrase. |
 | Swap: select NEAR output and Get quote | Dry preview, or explicit registration/provider error. No wallet approval yet. |
 | Swap: select Base output and enter destination twice | Wrong network format or differing address confirmation fails; supported route produces an explicitly cross-chain review. |
