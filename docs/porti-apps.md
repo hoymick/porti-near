@@ -7,7 +7,7 @@ Porti Apps is the first version of Porti's shared application layer on NEAR main
 - An app directory with search and per-workspace saved pins.
 - Rhea Pool Lens: reads the documented Ref exchange contract `v2.ref-finance.near`, `get_number_of_pools`, then one `get_pools` record.
 - NEAR Staking Lens: reads `get_total_staked_balance`, `get_number_of_accounts`, and `get_reward_fee_fraction` on user-specified standard `.poolv1.near` / `.pool.near` contracts.
-- Meta Pool: fixed `meta-pool.near` contract, `get_st_near_price`, `ft_total_supply`, and `ft_metadata`. Reference NEAR per stNEAR is shown using 24 decimals; supply uses the returned token decimals. No APY or executable quote is inferred.
+- Meta Pool: fixed `meta-pool.near` contract, `get_st_near_price`, `ft_total_supply`, and `ft_metadata`. Reference NEAR per stNEAR is shown using 24 decimals; supply uses the returned token decimals. Exact formatted amounts and units are supplied to the AI tool to avoid raw-unit conversion errors. No APY or executable quote is inferred.
 - NEAR Social: read the exact account’s public profile name and description from `social.near` via the `get` method. These self-published fields do not verify identity. Other social backends may hold newer profile information.
 - AstroDAO: read a supplied `.sputnik-dao.near` contract’s configuration, next proposal ID, and up to five recent proposal slots via `get_config`, `get_last_proposal_id` and `get_proposals`. Missing or deleted proposals are not fabricated.
 - Search and category filters for Exchange, Staking, Social and Governance.

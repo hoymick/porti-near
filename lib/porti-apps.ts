@@ -1,5 +1,5 @@
 import { DomainError } from "./errors.mjs";
-import { nearAccountOK } from "./near-core.mjs";
+import { nearAccountOK, decimal } from "./near-core.mjs";
 import { nearRpc } from "./near-services";
 import { registeredApp } from "./porti-app-registry";
 
@@ -46,7 +46,7 @@ export async function runPortiApp(id: string, appId: string, actionId: string, a
     const supply = await view("ft_total_supply");
     const metadata = await view("ft_metadata");
     if (!uint(price) || !uint(supply) || !Number.isInteger(metadata?.decimals) || metadata.decimals < 0 || metadata.decimals > 36) invalid();
-    data = {stNearPriceYocto:price,totalSupplyRaw:supply,decimals:metadata.decimals};
+    data = {stNearPriceYocto:price,totalSupplyRaw:supply,decimals:metadata.decimals,stNearPriceFormatted:decimal(price,24)+" NEAR per stNEAR",totalSupplyFormatted:decimal(supply,metadata.decimals)+" stNEAR"};
   } else if (appId === "near-social") {
     if (Object.keys(args).some(k => k !== "account") || !nearAccountOK(args.account)) throw new DomainError("APP_INPUT", "Enter an exact NEAR mainnet account for the public profile.");
     contract = "social.near";

@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { z } from 'zod';
 import { DomainError } from '../lib/errors.mjs';
-import { nearAccountOK } from '../lib/near-core.mjs';
+import { nearAccountOK, decimal } from '../lib/near-core.mjs';
 import { load } from './helpers/services.mjs';
 const sdk = load('sdk/porti-apps.ts',{z},['definePortiApp']);
 const {portiApps,registeredApp} = load('lib/porti-app-registry.ts',sdk,['portiApps','registeredApp']);
 function service(outputs) {
  const calls=[];
- const svc=load('lib/porti-apps.ts',{DomainError,nearAccountOK,registeredApp,nearRpc:async(id,method,args)=>{calls.push({id,method,args});const output=outputs.shift();return {result:[...new TextEncoder().encode(JSON.stringify(output))],block_hash:'final-block',block_height:12345}}},['runPortiApp']);
+ const svc=load('lib/porti-apps.ts',{DomainError,nearAccountOK,decimal,registeredApp,nearRpc:async(id,method,args)=>{calls.push({id,method,args});const output=outputs.shift();return {result:[...new TextEncoder().encode(JSON.stringify(output))],block_hash:'final-block',block_height:12345}}},['runPortiApp']);
  return {...svc,calls};
 }
 test('manifest rejects write permissions, extra fields, insecure URLs and duplicate actions',()=>{
@@ -39,7 +39,7 @@ test('staking retains exact integer balance and rejects impossible reward fee',a
  await assert.rejects(service(['1',1,{numerator:101,denominator:100}]).runPortiApp('a','near-staking','read-pool',{poolAccount:'example.poolv1.near'}),/unsupported/);
 });
 test('provider failure propagates without a fabricated response',async()=>{
- const {runPortiApp}=load('lib/porti-apps.ts',{DomainError,nearAccountOK,registeredApp,nearRpc:async()=>{throw new Error('RPC unavailable')}},['runPortiApp']);
+ const {runPortiApp}=load('lib/porti-apps.ts',{DomainError,nearAccountOK,decimal,registeredApp,nearRpc:async()=>{throw new Error('RPC unavailable')}},['runPortiApp']);
  await assert.rejects(runPortiApp('a','rhea-pools','read-pool',{poolId:0}),/RPC unavailable/);
 });
 test('app routes enforce owner and origin before mutations, and pins are idempotent per workspace',async()=>{
@@ -54,7 +54,7 @@ test('app routes enforce owner and origin before mutations, and pins are idempot
 test('Meta Pool uses its fixed contract and exact reference/supply units at one block',async()=>{
  const s=service(['1456789012345678901234567','2000000000000000000000000000000',{decimals:24}]);
  const r=await s.runPortiApp('a','meta-pool','read-state',{});
- assert.equal(r.data.stNearPriceYocto,'1456789012345678901234567');assert.equal(r.data.decimals,24);
+ assert.equal(r.data.stNearPriceYocto,'1456789012345678901234567');assert.equal(r.data.stNearPriceFormatted,'1.456789012345678901234567 NEAR per stNEAR');assert.equal(r.data.totalSupplyFormatted,'2000000 stNEAR');assert.equal(r.data.decimals,24);
  assert.ok(s.calls.every(c=>c.args.account_id==='meta-pool.near'));assert.ok(s.calls.slice(1).every(c=>c.args.block_id==='final-block'));
  await assert.rejects(service([]).runPortiApp('a','meta-pool','read-state',{contract:'evil.near'}));
  await assert.rejects(service(['1','1',{decimals:90}]).runPortiApp('a','meta-pool','read-state',{}),/unsupported/);
