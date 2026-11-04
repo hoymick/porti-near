@@ -1,3 +1,5 @@
+> Historical v0.6 notes. For current implementation and activation, see release-v08.md.
+
 # Porti for NEAR v0.6
 
 Porti is a NEAR mainnet companion. This specification describes the core NEAR product; Telegram development remains in progress as documented in CHECKPOINT.md.

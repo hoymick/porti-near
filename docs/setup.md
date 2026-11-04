@@ -8,7 +8,7 @@ Use Node.js >=22.13.0. Install locked dependencies with `npm ci`. The applicatio
 
 Configure `PORTI_SETTINGS_KEY` as a cryptographically random, high-entropy secret in the deployment platform. It derives the AES-GCM settings key using the `porti-settings-v1` domain. Per-owner authenticated data and random IVs bind encrypted credentials to their owner. Keep this key stable or plan a credential migration before rotation.
 
-Set `PORTI_APP_URL` to the real HTTPS origin of the deployed Porti app. It is used in Telegram notification buttons. No deployment URL is hardcoded into notification delivery.
+Set `PORTI_APP_URL` to the real HTTPS origin of the deployed Porti app. It identifies the deployed application for operational configuration. No deployment URL is hardcoded into notification delivery.
 
 Optional server-level provider settings are `NEAR_AI_API_KEY`, `NEARBLOCKS_API_KEY` and `NEAR_RPC_URL`. Users can instead verify and save encrypted credentials through Connections. Never include secret values in Git, environment examples, screenshots or chat.
 
@@ -22,14 +22,12 @@ For an existing installation, back up the database and test compatibility first.
 
 Run `npx tsc --noEmit`, `npm test` and `npm run build`. Verify sign-in, account isolation, research failures, username proof checks, transfer expiry and exact receipt matching. Financial acceptance requires the wallet owner's explicit actions.
 
-## Telegram work in progress
+## Telegram activation
 
-The current design uses Telegram polling rather than a public webhook, preserving the private application boundary. A dedicated bot is configured through the password field in Porti. Private-chat linking requires a one-use ten-minute code, a Telegram Start action and confirmation in Porti.
+Open Telegram in Porti, create a dedicated bot through @BotFather, and enter its token in the password field. Active webhooks are refused. Generate a secure link, press Start in the bot's private chat, check Telegram from Porti and confirm the displayed account. Choose categories, resume delivery and use Send test alert when ready. Never paste bot tokens in ordinary chat.
 
-Delivery rules include selected categories, local timezone, quiet hours, minimum native balance changes and daily or per-check delivery. The queue retains delivery attempts and bounded retries. These paths still require integration/security review and live bot acceptance before launch.
-
-The unattended POST updater is `/api/porti/telegram/run`. It relies on the hosting platform's owner-private service access. It is not an unauthenticated public cron endpoint. Do not change the audience without adding independent runner authorization. A proposed 15-minute schedule has not been created. The UI's target cadence is not proof that a schedule exists.
+Per-check category delivery is supported. The runner refreshes one due watch per workspace and sends up to three queued alerts. The UI shows registered scheduling and actual run timestamps separately. Consult docs/release-v08.md for retention, retry and concurrency limits. The private maintenance endpoint uses host service access; no visitor ID is fabricated. Preserve owner-private access or add independent authorization before changing the audience.
 
 ## Branding and hosting
 
-The product name is Porti, package name is `porti`, report downloads use `Porti_Rug_Guard.html`, and the favicon uses the mint Porti star. Existing hosting project identity is preserved for compatibility. This repository cleanup does not rename or redeploy the live hosting resource.
+The product name is Porti, package name is `porti`, report downloads use `Porti_Rug_Guard.html`, and the favicon uses the mint Porti star. Existing hosting project identity is preserved for compatibility. The original hosting identity remains unchanged; this release updates the Porti application in place.

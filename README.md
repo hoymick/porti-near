@@ -4,11 +4,9 @@ Porti is an anime-inspired AI companion for NEAR mainnet. Investigate tokens, ex
 
 ## Product status
 
-- **Implemented:** movable companion, NEAR AI Cloud tool adapter, finalized account/token reads, partial holder screening, watchlists, verified username-to-wallet mappings, reviewed native/NEP-141 transfers and receipt verification.
-- **In progress:** Telegram account linking, preferences, outbox and polling runner. The Telegram feature is not deployed or acceptance-tested; no background schedule or bot token has been configured.
-- **Activation required:** a working mainnet RPC and a NEAR AI Cloud API key. Live inference and funded wallet acceptance remain unverified.
+Porti v0.8 adds a main/agent wallet hub, provider-assisted wallet creation, reviewed funding, token candlesticks and technical readings, accepted-friend chat, Telegram linking and queued observations, and a mint anime companion. Existing finalized research, username proofs and reviewed transfers remain in place.
 
-Porti does not autonomously trade or sign transactions. Holder concentration is an observation, not a calibrated rug probability. Walkthrough data is explicitly fictional. Username verification proves wallet control, not a person's identity.
+See [release behavior and limits](docs/release-v08.md). Provider setup is required for actual AI inference and Telegram delivery. Wallet creation and all transfer signatures stay with the user. Missing market or RPC data remains missing; walkthrough values are fictional. Concentration is not a calibrated rug probability.
 
 ## Development
 
@@ -34,7 +32,7 @@ Set secrets in the host's runtime configuration, never in source control.
 | Name | Purpose |
 | --- | --- |
 | `PORTI_SETTINGS_KEY` | High-entropy server secret used to derive the authenticated settings-encryption key. |
-| `PORTI_APP_URL` | HTTPS deployment origin used for Telegram's Open in Porti button. |
+| `PORTI_APP_URL` | HTTPS deployment origin for operational configuration. |
 | `NEAR_AI_API_KEY` | Optional shared inference credential; users may configure their own encrypted key through Connections. |
 | `NEARBLOCKS_API_KEY` | Optional shared indexer credential. |
 | `NEAR_RPC_URL` | Optional mainnet RPC override. |
@@ -46,18 +44,18 @@ This cleaned repository uses Porti-specific encryption configuration. Before dep
 
 - `app/near-workspace.tsx`: Porti navigation and NEAR workflows.
 - `app/porti-companion.tsx`: movable anime launcher and chat.
-- `app/telegram-settings.tsx`: Telegram configuration interface (in progress).
+- `app/telegram-settings.tsx`: Telegram configuration interface.
 - `app/api/porti/route.ts`: authenticated application actions.
 - `lib/near-agent.ts`: bounded NEAR AI Cloud tool loop.
 - `lib/near-services.ts`: data adapters, transfer reviews and reconciliation.
 - `lib/near-profile.ts`, `lib/near-identity.mjs`: username directory and NEP-413 proofs.
 - `lib/token-risk.mjs`: NEAR holder graphs and partial concentration screening.
-- `lib/telegram.ts`: Telegram linking, queue and runner (in progress).
+- `lib/telegram.ts`: Telegram linking, queue and runner.
 - `lib/store.mjs`: Porti-only workspace persistence with optimistic revision checks.
 - `db/`, `drizzle/`: database schema and ordered migrations.
 - `tests/`: NEAR, holder-risk, notification-policy and storage checks.
 
-Read [the implementation specification](docs/near-porti-v06.md) and [the paused-work checkpoint](CHECKPOINT.md) before extending or deploying the app.
+Read [the implementation specification](docs/near-porti-v06.md) and [the current checkpoint](CHECKPOINT.md) before extending or deploying the app.
 
 ## Design
 

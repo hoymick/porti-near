@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 export const workspaces = sqliteTable('workspaces', {
   ownerId: text('owner_id').primaryKey(),
   state: text('state').notNull(),
@@ -30,3 +30,9 @@ export const telegramOutbox = sqliteTable('telegram_outbox', {
 export const telegramRuns = sqliteTable('telegram_runs', {
  id:text('id').primaryKey(),lastRun:integer('last_run'),lastResult:text('last_result'),
 });
+
+export const friendLinks=sqliteTable('friend_links',{pair:text('pair').primaryKey(),a:text('a').notNull(),b:text('b').notNull(),requester:text('requester').notNull(),status:text('status').notNull(),blocker:text('blocker'),updatedAt:integer('updated_at').notNull()},t=>[index('friend_a').on(t.a),index('friend_b').on(t.b)]);
+export const friendMessages=sqliteTable('friend_messages',{id:text('id').primaryKey(),pair:text('pair').notNull(),sender:text('sender').notNull(),body:text('body').notNull(),createdAt:integer('created_at').notNull()},t=>[index('messages_pair').on(t.pair,t.createdAt)]);
+export const portiTelegramBots=sqliteTable('porti_telegram_bots',{ownerId:text('owner_id').primaryKey(),botId:text('bot_id').notNull().unique(),state:text('state').notNull(),leaseUntil:integer('lease_until').notNull().default(0),leaseId:text('lease_id')});
+export const portiTelegramOutbox=sqliteTable('porti_telegram_outbox',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),text:text('text').notNull(),version:text('version').notNull(),status:text('status').notNull().default('pending'),attempts:integer('attempts').notNull().default(0),nextAt:integer('next_at').notNull().default(0),createdAt:integer('created_at').notNull(),sentAt:integer('sent_at'),messageId:integer('message_id')},t=>[index('porti_telegram_due').on(t.ownerId,t.status,t.nextAt)]);
+export const portiRuns=sqliteTable('porti_runs',{id:text('id').primaryKey(),value:text('value').notNull()});

@@ -1,9 +1,8 @@
+// Shared maintenance endpoint: protected by the owner-private Sites dispatcher.
+// No visitor impersonation. Keep this Site owner-private.
 import {env} from 'cloudflare:workers';
-import {sameOrigin,errorResponse} from '../../../../../lib/workspace';
-import {runTelegramBackground} from '../../../../../lib/telegram';
+import {runTelegram} from '../../../../../lib/telegram';
+import {errorResponse,sameOrigin} from '../../../../../lib/workspace';
 export const dynamic='force-dynamic';
-// Shared unattended updater. Sites dispatch enforces owner-private access before
-// this route; service callers use supported OAI-Sites-Authorization access.
-// Do not make this Site public without adding separate runner authorization.
-export async function POST(request:Request){try{sameOrigin(request);const db=env.DB as any;await db.prepare("INSERT OR IGNORE INTO telegram_runs(id,last_run) VALUES('throttle',0)").run();const now=Date.now();const claim=await db.prepare("UPDATE telegram_runs SET last_run=? WHERE id='throttle' AND last_run<?").bind(now,now-60000).run();if(claim.meta.changes!==1)return Response.json({status:'already_checked'},{headers:{'Cache-Control':'no-store'}});return Response.json({status:'completed',...await runTelegramBackground()},{headers:{'Cache-Control':'no-store'}});}catch(e){return errorResponse(e);}}
-export async function GET(){const row=await (env.DB as any).prepare("SELECT last_run,last_result FROM telegram_runs WHERE id='global'").first();return Response.json({lastRun:row?.last_run||null,result:row?.last_result?JSON.parse(row.last_result):null},{headers:{'Cache-Control':'no-store'}});}
+export async function GET(){try{const r=await env.DB!.prepare('SELECT id,value FROM porti_runs WHERE id IN (\'telegram\',\'schedule\')').all();return Response.json({runs:r.results.map((x:any)=>({id:x.id,...JSON.parse(x.value)}))},{headers:{'Cache-Control':'no-store'}});}catch(e){return errorResponse(e);}}
+export async function POST(r:Request){try{sameOrigin(r);const raw=await r.text();if(raw.length>1000)return Response.json({error:'Request too large'},{status:413});const input=raw?JSON.parse(raw):{};if(input.action==='register-schedule'&&typeof input.scheduleId==='string'&&input.scheduleId.length<150){await env.DB!.prepare("INSERT INTO porti_runs(id,value) VALUES('schedule',?) ON CONFLICT(id) DO UPDATE SET value=excluded.value").bind(JSON.stringify({id:input.scheduleId,intervalMinutes:input.intervalMinutes,enabled:true})).run();return Response.json({registered:true});}return Response.json(await runTelegram());}catch(e){return errorResponse(e);}}
