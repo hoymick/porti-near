@@ -16,7 +16,7 @@ The local adapter supports reviewed Transfer and FunctionCall only, preserves ex
 
 Acceptance: automated tests cover encryption/restore, wrong passwords, tampering, NEP-413 verification, independently checked transaction signatures, activation gating, cancellation, locking during approval, exact-action binding, durable-journal failure and ambiguous sends. Real browser wallet creation, funded activation, restore on another device and a manually approved finalized transaction still require the wallet owner. No production wallet was created or funded during automated QA.
 
-Requires a secure HTTPS origin, IndexedDB, Ed25519 WebCrypto, Web Locks and access to the public NEAR mainnet RPC. RPC outages remain visible and cannot produce a false activation result.
+Requires a secure HTTPS origin, IndexedDB, Ed25519 WebCrypto, Web Locks and access to the public NEAR mainnet RPC. RPC outages remain visible and cannot produce a false activation result. Legacy HTTP-200 query errors are normalized; a missing access key triggers an account-existence lookup before an address is labeled inactive. An existing account with a missing key is a separate error, never a funding prompt.
 
 ## Optional managed passkey service
 

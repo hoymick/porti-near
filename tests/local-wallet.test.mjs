@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createVault,unlockVault,validateVault,signOwnership,base58Encode,decode64} from '../lib/local-wallet-crypto.mjs';
 import {verifyNearMessage,base58Decode} from '../lib/near-identity.mjs';
-import {localAccountState,localWalletAdapter,buildLocalSigned,reviewedLocalActions} from '../lib/local-wallet-signing.mjs';
+import {localRpc,localAccountState,localWalletAdapter,buildLocalSigned,reviewedLocalActions} from '../lib/local-wallet-signing.mjs';
 import {SignedTransaction} from 'near-api-js';
 const password='test-only-long-unique-password';
 const vault=await createVault(password),key=await unlockVault(vault,password);
@@ -41,4 +41,14 @@ test('cancellation does not sign/send; uncertain broadcast retains original hash
 test('locking during approval prevents signing, and approval cannot change the frozen transaction',async()=>{
  let locked=false,calls=0;const wallet=localWalletAdapter(vault,()=>{if(locked)throw Error('locked');return key},async()=>{locked=true},{read:async()=>null,write:async()=>{}},async()=>{calls++;},work=>work());await assert.rejects(wallet.signAndSendTransaction(input));assert.equal(calls,0);
  let saved;const request=structuredClone(input);const w=localWalletAdapter(vault,()=>key,async()=>{request.receiverId='different.near'}, {read:async()=>null,write:async p=>{saved=p}},async(m,p)=>{if(m==='status')return {chain_id:'mainnet'};if(m==='query')return {permission:'FullAccess',nonce:state.nonce,block_hash:state.blockHash};const tx=SignedTransaction.decode(decode64(p.signed_tx_base64));assert.equal(tx.transaction.receiverId,'receiver.near');return {transaction:{hash:saved.hash}}},work=>work());await w.signAndSendTransaction(request);
+});
+test('HTTP-200 legacy missing-key response is followed by an account lookup before prompting activation',async()=>{
+ const calls=[];const fetcher=async(url,options)=>{const q=JSON.parse(options.body);calls.push(q);if(q.method==='status')return Response.json({result:{chain_id:'mainnet'}});if(q.params.request_type==='view_access_key')return Response.json({result:{block_hash:state.blockHash,error:`access key ${vault.publicKey} does not exist while viewing`,logs:[]}});return Response.json({error:{cause:{name:'UNKNOWN_ACCOUNT'},data:`account ${vault.account} does not exist while viewing`}})};
+ assert.deepEqual(await localAccountState(vault,(m,p)=>localRpc(m,p,fetcher)),{active:false});assert.equal(calls.at(-1).params.request_type,'view_account');
+});
+test('legacy errors for an existing account and provider failures cannot claim an unfunded wallet',async()=>{
+ const fetcher=async(url,options)=>{const q=JSON.parse(options.body);if(q.method==='status')return Response.json({result:{chain_id:'mainnet'}});if(q.params.request_type==='view_access_key')return Response.json({result:{error:`access key ${vault.publicKey} does not exist while viewing`}});return Response.json({result:{amount:'0',code_hash:state.blockHash}})};
+ await assert.rejects(localAccountState(vault,(m,p)=>localRpc(m,p,fetcher)),/not authorized/);
+ await assert.rejects(localRpc('query',{account_id:vault.account},async()=>Response.json({result:{error:'unexpected provider error'}})));
+ await assert.rejects(localAccountState(vault,async()=>{throw Error('network unavailable')}));
 });
