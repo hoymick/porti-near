@@ -24,3 +24,35 @@ html[data-porti-theme=dark] .near-app :is(.sc-chain,.sc-hero,.near-hero,.apps-he
 html[data-porti-theme=dark] .near-app .breadcrumb>span{color:#d9f4e3!important}
 html[data-porti-theme=dark] .near-app .sidebar nav .section-current:not(.active){background:#254632!important;color:#d9f4e3!important}
 html[data-porti-theme=dark] .near-app .sidebar .sc-chain small{color:#b4c8ba!important}
+/* Pair every chat foreground with its own surface instead of inheriting page colors. */
+.scout-app.near-app .porti-chat{--chat-bubble:#e4f4eb;--chat-user:#eff3f1;--chat-text:#203d2d;--chat-muted:#4f6658;--chat-border:#a8c8b5;--chat-code:#d2e8da;--chat-link:#005d3d}
+html[data-porti-theme=dark] .scout-app.near-app .porti-chat{--chat-bubble:#223e2e;--chat-user:#29372f;--chat-text:#e9f5ed;--chat-muted:#b9cdbf;--chat-border:#496653;--chat-code:#16291e;--chat-link:#6bffc7}
+.scout-app.near-app .porti-chat .porti-message-body{background:var(--chat-bubble);color:var(--chat-text)!important;border:1px solid var(--chat-border);border-radius:4px 16px 16px;padding:16px 18px;font:14px/1.75 Nunito,sans-serif;overflow-wrap:anywhere;min-width:0}
+.scout-app.near-app .porti-chat .porti-message.user{background:transparent!important}
+.scout-app.near-app .porti-chat .porti-message.user .porti-message-body{background:var(--chat-user);border-radius:16px 4px 16px 16px}
+html .scout-app.near-app .porti-chat .porti-message-body :is(p,li,strong,em,code,h3){color:var(--chat-text)!important;font-size:inherit;line-height:inherit}
+html .scout-app.near-app .porti-chat .porti-message-body p{margin:0 0 12px;white-space:pre-wrap}
+html .scout-app.near-app .porti-chat .porti-message-body>:last-child{margin-bottom:0}
+html .scout-app.near-app .porti-chat .porti-message-body h3{margin:0 0 12px;font-family:Nunito,sans-serif;font-weight:900;letter-spacing:0}
+.porti-chat .porti-message-body :is(ul,ol){margin:10px 0 16px;padding-left:24px;display:grid;gap:8px}
+.porti-chat .porti-message-body code{background:var(--chat-code);padding:2px 5px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.92em!important;white-space:pre-wrap;overflow-wrap:anywhere;box-decoration-break:clone}
+.porti-chat .porti-message-body pre{background:var(--chat-code);border:1px solid var(--chat-border);border-radius:10px;padding:12px;margin:12px 0;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+.porti-chat .porti-message-body pre code{padding:0;background:none}
+html .scout-app.near-app .porti-chat .porti-message-body a{color:var(--chat-link)!important;text-decoration:underline;text-underline-offset:3px}
+html .scout-app.near-app .porti-chat :is(.porti-action-card,.porti-suggestions button,.porti-connect-note){background:var(--chat-user)!important;border-color:var(--chat-border)!important;color:var(--chat-text)!important}
+html .scout-app.near-app .porti-chat .porti-action-card :is(strong,small),html .scout-app.near-app .porti-chat .porti-connect-note :is(p,strong){color:var(--chat-text)!important}
+html .scout-app.near-app .porti-chat :is(.porti-message>span,.porti-tool-steps>span,.porti-thinking,.porti-thinking small,.porti-image-bar small,.porti-chat-notice,footer,.porti-context,.porti-chat>header>div>span){color:var(--chat-muted)!important;font-size:11px;line-height:1.6}
+.porti-chat .porti-action-card small{line-height:1.6;font-size:11px}
+.porti-chat .porti-message>span{letter-spacing:1px;font-weight:900}
+.porti-chat .porti-image-bar{padding:12px 16px;max-height:160px;display:grid;gap:10px}
+.porti-chat .porti-image-bar small{margin:0}
+.porti-chat .porti-chat-compose textarea{font-size:14px;line-height:1.6}
+.porti-chat .porti-chat-error{background:#fff0df!important;border-color:#ad7854!important}
+html .scout-app.near-app .porti-chat .porti-chat-error p{color:#633614!important;font-size:12px!important}
+html[data-porti-theme=dark] .scout-app.near-app .porti-chat .porti-chat-error{background:#432d20!important;border-color:#b68c67!important}
+html[data-porti-theme=dark] .scout-app.near-app .porti-chat .porti-chat-error p{color:#ffe3c8!important}
+/* Strengthen small secondary copy in daytime, too. */
+html:not([data-porti-theme=dark]) .scout-app.near-app :is(.sc-fine,.sc-eyebrow,.nav-label,.muted,small){color:#506659!important}
+html:not([data-porti-theme=dark]) .scout-app.near-app .sidebar nav button:not(.active){color:#4b6655}
+html:not([data-porti-theme=dark]) .scout-app.near-app :is(input,textarea)::placeholder{color:#546e5e!important}
+@media(max-width:650px){.scout-app.near-app .porti-chat .porti-message-body{padding:14px;font-size:14px}.porti-chat .porti-image-bar{padding:10px 14px}}

@@ -1,3 +1,4 @@
+import { displayChatText } from "./chat-format.mjs";
 import { typedTransferMatches } from "./typed-transfer.mjs";
 import { nearMarkets } from "./markets";
 import { purchaseIntent } from "./purchase-intent.mjs";
@@ -384,7 +385,7 @@ export async function nearChat(id: string, input: any) {
       id: crypto.randomUUID(),
       requestId: turnId,
       role: "assistant",
-      content: final.slice(0, 8000),
+      content: displayChatText(final.slice(0, 8000)),
       cards,
       steps,
       createdAt: Date.now(),
