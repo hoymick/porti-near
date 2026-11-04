@@ -7,7 +7,7 @@ export const appManifestSchema = z.object({
   name: z.string().min(1).max(60),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
   description: z.string().min(1).max(240),
-  category: z.enum(["Exchange", "Staking", "Research"]),
+  category: z.enum(["Exchange", "Staking", "Research", "Social", "Governance"]),
   network: z.literal("mainnet"),
   website: z.string().url().refine(u => new URL(u).protocol === "https:" && !new URL(u).username && !new URL(u).password),
   permissions: z.array(z.literal("chain:read")).length(1),

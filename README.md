@@ -66,3 +66,7 @@ Porti uses NEAR-inspired mint, black and white, Fredoka/Nunito typography, and o
 ## Porti Apps (v0.10)
 
 The Porti Apps directory adds saved favorites, live read-only Rhea exchange / standard NEAR staking-pool workspaces, assistant tools, and a manifest validator. See [the integration guide](docs/porti-apps.md) and [SDK source](sdk/porti-apps.ts). Third-party registration requires a reviewed server adapter; swaps and staking transactions are not implemented.
+
+## Ecosystem and navigation (v0.11)
+
+Add live Meta Pool, NEAR Social and AstroDAO readers, bringing the directory to five adapters. App reads remain bounded, allowlisted and tied to finalized block evidence. Navigation now groups the existing screens under Research, Wallet, Social & Alerts, and Settings; all features remain accessible.

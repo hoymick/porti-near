@@ -2,12 +2,16 @@
 
 Porti Apps is the first version of Porti's shared application layer on NEAR mainnet. Projects bring a reviewed adapter into Porti, where users open a native workspace and the assistant can invoke its explicitly registered read actions. Porti remains an application on NEAR, not a new blockchain.
 
-## What ships
+## What ships (v0.11)
 
 - An app directory with search and per-workspace saved pins.
 - Rhea Pool Lens: reads the documented Ref exchange contract `v2.ref-finance.near`, `get_number_of_pools`, then one `get_pools` record.
 - NEAR Staking Lens: reads `get_total_staked_balance`, `get_number_of_accounts`, and `get_reward_fee_fraction` on user-specified standard `.poolv1.near` / `.pool.near` contracts.
-- A shared AI tool layer: `list_porti_apps`, `read_exchange_pool`, `read_staking_pool`.
+- Meta Pool: fixed `meta-pool.near` contract, `get_st_near_price`, `ft_total_supply`, and `ft_metadata`. Reference NEAR per stNEAR is shown using 24 decimals; supply uses the returned token decimals. No APY or executable quote is inferred.
+- NEAR Social: read the exact account’s public profile name and description from `social.near` via the `get` method. These self-published fields do not verify identity. Other social backends may hold newer profile information.
+- AstroDAO: read a supplied `.sputnik-dao.near` contract’s configuration, next proposal ID, and up to five recent proposal slots via `get_config`, `get_last_proposal_id` and `get_proposals`. Missing or deleted proposals are not fabricated.
+- Search and category filters for Exchange, Staking, Social and Governance.
+- A shared AI tool layer: `read_ecosystem_app`, `list_porti_apps`, `read_exchange_pool`, `read_staking_pool`.
 - Manifest v1 validation and a same-origin SDK client in `sdk/porti-apps.ts`.
 
 These are independent Porti adapters, not endorsements or commercial partnerships. They perform no trades or staking transactions. New manifests are not automatically installed. Third-party code and iframes are not executed.
@@ -73,8 +77,16 @@ Saved pins bring users back to tools they use regularly; shared AI lets the same
 
 Next: partner-specific transaction preview adapters, exact fees and slippage, existing wallet approval, receipts and revocation. Add isolated third-party panels only after a separate security design. Neither manifests nor AI responses may create transaction permissions by themselves.
 
+## Compact navigation
+
+Overview, Porti Apps and Ask Porti remain directly visible. Research groups token investigation, wallet tracking, Rug Guard and Watchlist. Wallet groups Wallets and Transfers. Social & Alerts groups Friends, Telegram and Alerts. Settings groups Profile, Connections and System status. Groups expand on selection, can be collapsed, and keep the current child visible in the group label. The unread alert count remains visible when its group is collapsed. All original screens remain available on desktop and mobile.
+
 ## Primary references
 
 - Contract identity: https://guide.rhea.finance/developers/contracts
 - Exchange view methods: https://github.com/ref-finance/docs/blob/main/contracts/ref-exchange.md
 - Standard staking contract: https://github.com/near/core-contracts/tree/master/staking-pool
+
+- Meta Pool contracts: https://docs.metapool.app/master/for-developers/meta-pool-contracts/near-network
+- SocialDB contract/read patterns: https://github.com/NearSocial/social-db
+- AstroDAO view methods: https://github.com/near-daos/sputnik-dao-contract/blob/main/sputnikdao2/src/views.rs

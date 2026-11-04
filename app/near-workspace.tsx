@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
+import PortiNavigation from "./porti-navigation";
+import "./porti-navigation.css";
 import "./porti-apps.css";
 import WalletHub from "./wallet-hub";
 import Friends from "./friends";
@@ -562,23 +564,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           <ChevronRight size={13} />
         </button>
         <div className="nav-label">YOUR LITTLE ONCHAIN WORLD</div>
-        <nav>
-          {navigation.map(([name, Icon]) => (
-            <button
-              key={name}
-              className={view === name ? "active" : ""}
-              onClick={() => go(name)}
-            >
-              <Icon size={18} />
-              <span>{name}</span>
-              {name === "Alerts" && alerts.some((a: any) => !a.read) && (
-                <b className="sc-count">
-                  {alerts.filter((a: any) => !a.read).length}
-                </b>
-              )}
-            </button>
-          ))}
-        </nav>
+        <PortiNavigation navigation={navigation} view={view} onNavigate={go} unread={alerts.filter((a: any) => !a.read).length} />
         <div className="sidebar-bottom">
           <div className="sc-chain">
             <Network size={19} />
@@ -597,7 +583,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             <MessageCircle size={15} />
           </button>
           <div className="sc-version">
-            NEAR AI Cloud<span>v0.10</span>
+            NEAR AI Cloud<span>v0.11</span>
           </div>
         </div>
       </aside>
