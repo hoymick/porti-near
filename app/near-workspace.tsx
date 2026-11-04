@@ -33,6 +33,8 @@ import {
   X,
 } from "lucide-react";
 import SystemStatus from "./system-status";
+import PortiApps from "./porti-apps";
+import "./porti-apps.css";
 import WalletHub from "./wallet-hub";
 import Friends from "./friends";
 import TelegramSettings from "./telegram-settings";
@@ -44,6 +46,7 @@ import { decimal, nearAccountOK } from "../lib/near-core.mjs";
 import { tokenRisk } from "../lib/token-risk.mjs";
 const navigation = [
   ["Overview", Home],
+  ["Porti Apps", Network],
   ["Ask Porti", MessageCircle],
   ["Investigate token", Search],
   ["Track wallet", Wallet],
@@ -153,6 +156,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
   useEffect(() => {
     const token = new URL(window.location.href).searchParams.get("token");
     if(new URL(window.location.href).searchParams.get("screen")==="status")setView("System status");
+    if(new URL(window.location.href).searchParams.get("screen")==="apps")setView("Porti Apps");
     if (nearAccountOK(token)) {
       setView("Investigate token");
       setAccount(token!);
@@ -516,6 +520,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     }
   }
   const heading: any = {
+    "Porti Apps": "Your favorite NEAR projects, closer together.",
     "System status": "Connections, acceptance evidence and operational limits.",
     Wallets: "A home for your NEAR wallets.",
     Friends: "Your circle. Your conversations.",
@@ -592,7 +597,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             <MessageCircle size={15} />
           </button>
           <div className="sc-version">
-            NEAR AI Cloud<span>v0.9</span>
+            NEAR AI Cloud<span>v0.10</span>
           </div>
         </div>
       </aside>
@@ -1601,6 +1606,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                   {view === "Investigate token" && contextToken && !report && (
                     <TokenChart contract={contextToken} sample={sample} />
                   )}
+                  {view === "Porti Apps" && <PortiApps sample={sample} />}
                   {view === "System status" && !sample && <SystemStatus />}
                   {view === "System status" && sample && (
                     <section className="sc-panel">

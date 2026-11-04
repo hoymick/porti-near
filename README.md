@@ -62,3 +62,7 @@ Read [the implementation specification](docs/near-porti-v06.md) and [the current
 ## Design
 
 Porti uses NEAR-inspired mint, black and white, Fredoka/Nunito typography, and original anime artwork. Font license notices are included in `public/fonts`. Porti is an independent project.
+
+## Porti Apps (v0.10)
+
+The Porti Apps directory adds saved favorites, live read-only Rhea exchange / standard NEAR staking-pool workspaces, assistant tools, and a manifest validator. See [the integration guide](docs/porti-apps.md) and [SDK source](sdk/porti-apps.ts). Third-party registration requires a reviewed server adapter; swaps and staking transactions are not implemented.

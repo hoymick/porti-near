@@ -47,7 +47,7 @@ export async function systemStatus(id: string, probe = false) {
     )
     .at(-1);
   return {
-    version: "0.9.0",
+    version: "0.10.0",
     dependencyAudit: { checkedAt: audit.checkedAt, ...audit.vulnerabilities },
     state: "launch-verification-required",
     deploymentBoundary: "owner-private-required",
