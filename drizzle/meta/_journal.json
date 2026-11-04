@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1793735588283,
+      "tag": "0000_nifty_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793772579519,
+      "tag": "0001_flat_ultimatum",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793775252376,
+      "tag": "0002_right_senator_kelly",
+      "breakpoints": true
+    }
+  ]
+}

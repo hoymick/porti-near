@@ -1,0 +1,6 @@
+import {owner,sameOrigin,errorResponse,mutate} from '../../../lib/workspace';
+import {liveConfig,liveAction,safeLiveTask} from '../../../lib/live-server';
+import {DomainError} from '../../../lib/engine.mjs';
+export const dynamic='force-dynamic';
+export async function GET(){try{const id=await owner(),{state}=await mutate(id,()=>null);return Response.json({...liveConfig(),rpcConfigured:!!state.rpcCipher,tasks:(state.liveTasks||[]).map(safeLiveTask)},{headers:{'Cache-Control':'no-store'}});}catch(e){return errorResponse(e);}}
+export async function POST(request:Request){try{sameOrigin(request);const id=await owner(),text=await request.text();if(text.length>150000)throw new DomainError('INPUT_TOO_LARGE','Request too large.',413);let input;try{input=JSON.parse(text);}catch{throw new DomainError('INVALID_JSON','Invalid request.');}if(!input||typeof input!=='object')throw new DomainError('INVALID_REQUEST','Invalid request.');return Response.json(await liveAction(id,input),{headers:{'Cache-Control':'no-store'}});}catch(e){return errorResponse(e instanceof DomainError?e:new DomainError('CHAIN_REQUEST_FAILED','The chain request could not be verified. Check the service connection and configured RPC endpoint.',503));}}
