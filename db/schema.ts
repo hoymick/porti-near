@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 export const workspaces = sqliteTable('workspaces', {
   ownerId: text('owner_id').primaryKey(),
   state: text('state').notNull(),
@@ -36,3 +36,5 @@ export const friendMessages=sqliteTable('friend_messages',{id:text('id').primary
 export const portiTelegramBots=sqliteTable('porti_telegram_bots',{ownerId:text('owner_id').primaryKey(),botId:text('bot_id').notNull().unique(),state:text('state').notNull(),leaseUntil:integer('lease_until').notNull().default(0),leaseId:text('lease_id')});
 export const portiTelegramOutbox=sqliteTable('porti_telegram_outbox',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),text:text('text').notNull(),version:text('version').notNull(),status:text('status').notNull().default('pending'),attempts:integer('attempts').notNull().default(0),nextAt:integer('next_at').notNull().default(0),createdAt:integer('created_at').notNull(),sentAt:integer('sent_at'),messageId:integer('message_id')},t=>[index('porti_telegram_due').on(t.ownerId,t.status,t.nextAt)]);
 export const portiRuns=sqliteTable('porti_runs',{id:text('id').primaryKey(),value:text('value').notNull()});
+export const portiLimits=sqliteTable('porti_limits',{id:text('id').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()},t=>[index('porti_limits_expiry').on(t.expiresAt)]);
+export const transferReceipts=sqliteTable('porti_transfer_receipts',{id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),hash:text('hash').notNull(),draftId:text('draft_id').notNull(),receipt:text('receipt').notNull(),createdAt:integer('created_at').notNull()},t=>[uniqueIndex('receipt_owner_hash').on(t.ownerId,t.hash),uniqueIndex('receipt_owner_draft').on(t.ownerId,t.draftId)]);

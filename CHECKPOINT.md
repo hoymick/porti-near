@@ -1,7 +1,5 @@
-# Porti v0.8 checkpoint
+# Porti v0.9 hardening checkpoint
 
-Implemented the NEAR wallet hub, provider-assisted wallet creation entry, separate verified main/agent roles, reviewed agent funding, friends and 1:1 chat, token candlesticks and technical readings, NEAR AI tool additions, Telegram setup/linking/outbox/runner, and consistent mint branding including the mascot.
+Implemented durable API quotas, bounded JSON/provider reads, atomic profile proofs, membership-bound chat reads, strict finalized transfer/event evidence, durable receipt uniqueness, gas-price reserves, isolated encrypted settings, provider backoff/deduplication and an authenticated System status screen. Updated the framework/dependency stack and added pinned GitHub Actions verification.
 
-See docs/release-v08.md for behavior, security boundaries, provider limits and validation. Live activation needs a NEAR AI Cloud key, usable NEAR data access and a dedicated Telegram bot linked through the UI. Wallet creation and financial acceptance remain user-controlled provider actions.
-
-The Site remains private. Do not expose the shared updater publicly. Collaborators need Site access separately from GitHub access. No real token transfer or Telegram message was sent during development.
+See docs/production-readiness.md and docs/operations.md. The Site stays owner-private. Real-account funded wallet/AI/Telegram acceptance, a host-level recovery drill, remaining moderate lint-tooling advisories and independent application security review remain launch gates. No funded transaction or real Telegram message was performed during development.

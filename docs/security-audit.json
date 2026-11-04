@@ -1,0 +1,113 @@
+{
+  "checkedAt": "2026-11-04T12:16:34.632769+00:00",
+  "packageLockSHA256": "dc0f041409161813a45318df6bc201f8d35e27743f82695943c327f90d9a8145",
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 16,
+    "high": 0,
+    "critical": 0,
+    "total": 16
+  },
+  "remaining": [
+    {
+      "package": "@eslint-community/eslint-utils",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@eslint/config-array",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@eslint/eslintrc",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@next/eslint-plugin-next",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@typescript-eslint/eslint-plugin",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@typescript-eslint/parser",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@typescript-eslint/type-utils",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@typescript-eslint/typescript-estree",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "@typescript-eslint/utils",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "eslint",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": []
+    },
+    {
+      "package": "eslint-config-next",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": []
+    },
+    {
+      "package": "eslint-plugin-import",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "eslint-plugin-jsx-a11y",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "eslint-plugin-react",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    },
+    {
+      "package": "minimatch",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+      ]
+    },
+    {
+      "package": "typescript-eslint",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": []
+    }
+  ],
+  "scope": "Full npm dependency graph. Advisory scan is not an independent code audit."
+}

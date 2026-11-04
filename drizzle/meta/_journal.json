@@ -29,6 +29,13 @@
       "when": 1793791306504,
       "tag": "0003_damp_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793793206967,
+      "tag": "0004_loose_warpath",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,9 @@ Porti is an anime-inspired AI companion for NEAR mainnet. Investigate tokens, ex
 
 ## Product status
 
-Porti v0.8 adds a main/agent wallet hub, provider-assisted wallet creation, reviewed funding, token candlesticks and technical readings, accepted-friend chat, Telegram linking and queued observations, and a mint anime companion. Existing finalized research, username proofs and reviewed transfers remain in place.
+This is a hardened private beta. See [production readiness](docs/production-readiness.md), [operations](docs/operations.md) and the System status screen for completed safeguards and remaining launch gates. Do not widen the current owner-private audience until runner authorization and recovery controls are independently verified.
+
+Porti v0.9 retains a main/agent wallet hub, provider-assisted wallet creation, reviewed funding, token candlesticks and technical readings, accepted-friend chat, Telegram linking and queued observations, and a mint anime companion. Existing finalized research, username proofs and reviewed transfers remain in place.
 
 See [release behavior and limits](docs/release-v08.md). Provider setup is required for actual AI inference and Telegram delivery. Wallet creation and all transfer signatures stay with the user. Missing market or RPC data remains missing; walkthrough values are fictional. Concentration is not a calibrated rug probability.
 
