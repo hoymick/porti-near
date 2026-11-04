@@ -1,5 +1,7 @@
-# Porti v0.9 hardening checkpoint
+# Porti v0.12 checkpoint
 
-Implemented durable API quotas, bounded JSON/provider reads, atomic profile proofs, membership-bound chat reads, strict finalized transfer/event evidence, durable receipt uniqueness, gas-price reserves, isolated encrypted settings, provider backoff/deduplication and an authenticated System status screen. Updated the framework/dependency stack and added pinned GitHub Actions verification.
+Adds owner-configured X OAuth, signed MoonPay checkout preparation, private image attachments in Porti/friend chat, NEAR markets tables, and native-NEAR-source same/cross-chain 1Click swap reviews. Ethereum, Base, Arbitrum and BNB Chain are supported destination network families, conditional on the live catalog and quote. Existing Meta Pool staking and NEAR transfer evidence remain in place. Chat can open dedicated workflows, read market snapshots and cannot derive transfer authority from images.
 
-See docs/production-readiness.md and docs/operations.md. The Site stays owner-private. Real-account funded wallet/AI/Telegram acceptance, a host-level recovery drill, remaining moderate lint-tooling advisories and independent application security review remain launch gates. No funded transaction or real Telegram message was performed during development.
+Setup: docs/commerce-setup.md. Transaction/recovery boundaries: docs/transactions.md. Judge walkthrough: HACKATHON.md. Submission preparation: docs/hackathon-submission.md.
+
+82 automated tests pass at this checkpoint; type checking passes. Live funded acceptance was not performed. X/MoonPay credentials and trusted customer-IP configuration are owner tasks. Development 1Click catalog access returned HTTP 403. Image reads expire at 90 days; R2 lifecycle deletion must be configured. Site and repository remain private; no X post or hackathon submission was made.

@@ -44,7 +44,7 @@ export async function friendsState(id: string, pair?: string) {
     .all();
   let messages: any[] = [];
   if (pair) {
-    await allowed(id, pair);
+    await friendAllowed(id, pair);
     const r = await db()
       .prepare(
         `SELECT m.id,m.body,m.created_at AS createdAt,m.sender=? AS mine FROM friend_messages m JOIN friend_links f ON f.pair=m.pair JOIN profiles pa ON pa.owner_id=f.a JOIN profiles pb ON pb.owner_id=f.b WHERE m.pair=? AND f.status='accepted' AND (f.a=? OR f.b=?) AND m.created_at>? ORDER BY m.created_at DESC,m.id DESC LIMIT 50`,
@@ -60,7 +60,7 @@ export async function friendsState(id: string, pair?: string) {
     pair: pair || null,
   };
 }
-async function allowed(id: string, pair: string) {
+export async function friendAllowed(id: string, pair: string) {
   const r: any = await db()
     .prepare(
       `SELECT f.pair FROM friend_links f JOIN profiles pa ON pa.owner_id=f.a JOIN profiles pb ON pb.owner_id=f.b WHERE f.pair=? AND (f.a=? OR f.b=?) AND f.status='accepted'`,
@@ -131,7 +131,13 @@ export async function friendAction(id: string, input: any) {
     .first();
   if (!link) fail("Friendship not found.");
   if (input.action === "send") {
-    await allowed(id, pair);
+    await friendAllowed(id, pair);
+    if(input.imageId){
+      if(typeof input.text!=="string"||input.text.length>1000)fail("Photo captions can contain up to 1,000 characters.");
+      const {imageFor}=await import("./media");
+      await imageFor(id,input.imageId,"friend",pair);
+      input.text=JSON.stringify({portiImage:input.imageId,caption:input.text});
+    }
     if (
       typeof input.text !== "string" ||
       !input.text.trim() ||

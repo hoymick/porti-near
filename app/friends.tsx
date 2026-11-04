@@ -1,4 +1,5 @@
 "use client";
+import ImageUpload from "./image-upload";
 import React, { useEffect, useRef, useState } from "react";
 export default function Friends({ sample = false }: { sample?: boolean }) {
   const [state, setState] = useState<any>(null),
@@ -6,7 +7,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
     [name, setName] = useState(""),
     [text, setText] = useState(""),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),[image,setImage]=useState<any>(null);
   const outbound = useRef<any>(null),
     epoch = useRef(0);
   const selected = useRef("");
@@ -27,6 +28,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
     if (selected.current === p && current === epoch.current) setState(d);
   }
   useEffect(() => {
+    setImage(null);
     setError("");
     refresh(pair).catch((e) => setError(e.message));
     const timer = setInterval(() => {
@@ -40,9 +42,9 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
     try {
       if (action === "send") {
         const pending = outbound.current;
-        if (pending?.pair === pair && pending.text === extra.text)
+        if (pending?.pair === pair && pending.text === extra.text && pending.imageId === extra.imageId)
           extra = { ...extra, id: pending.id };
-        else outbound.current = { pair, text: extra.text, id: extra.id };
+        else outbound.current = { pair, text: extra.text, imageId:extra.imageId, id: extra.id };
       }
       const r = await fetch("/api/porti/friends", {
           method: "POST",
@@ -52,7 +54,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
         d: any = await r.json();
       if (!r.ok) throw new Error(d.error?.message || "Action failed.");
       if (action === "send") {
-        setText("");
+        setText("");setImage(null);
         outbound.current = null;
       }
       if (
@@ -188,7 +190,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
                   {m.mine ? "You" : "@" + friend?.username} ·{" "}
                   {new Date(m.createdAt).toLocaleTimeString()}
                 </small>
-                <p>{m.body}</p>
+                {(()=>{try{const a=JSON.parse(m.body);if(typeof a.portiImage==="string"&&/^[a-f0-9-]{36}$/.test(a.portiImage))return <><img className="porti-chat-image" src={"/api/porti/images?id="+a.portiImage} alt="Shared photo"/><p>{a.caption}</p></>}catch{}return <p>{m.body}</p>})()}
               </article>
             ))}
           {!pair && <p>Choose an accepted friend to open your chat.</p>}
@@ -197,10 +199,10 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           className="sc-form"
           onSubmit={(e) => {
             e.preventDefault();
-            act("send", { text, id: crypto.randomUUID() });
+            act("send", { text, imageId:image?.imageId, id: crypto.randomUUID() });
           }}
         >
-          <label htmlFor="friend-message">Message</label>
+          <ImageUpload scope="friend" pair={pair} disabled={busy||sample||!pair} onUpload={setImage}/>{image&&<div><img className="porti-chat-image" src={image.url} alt="Photo ready to send"/><button type="button" onClick={()=>setImage(null)}>Remove picture</button></div>}<label htmlFor="friend-message">Message</label>
           <textarea
             id="friend-message"
             value={text}
@@ -210,7 +212,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           />
           <button
             className="primary"
-            disabled={busy || sample || !pair || !text.trim()}
+            disabled={busy || sample || !pair || (!text.trim()&&!image)}
           >
             Send message
           </button>

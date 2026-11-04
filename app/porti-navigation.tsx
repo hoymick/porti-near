@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 const sections = [
- {label:"Research",items:["Investigate token","Track wallet","Rug Guard","Watchlist"]},
- {label:"Wallet",items:["Wallets","Stake NEAR","Transfers"]},
+ {label:"Research",items:["Markets","Investigate token","Track wallet","Rug Guard","Watchlist"]},
+ {label:"Wallet",items:["Wallets","Buy NEAR","Swap","Stake NEAR","Transfers"]},
  {label:"Social & Alerts",items:["Friends","Telegram","Alerts"]},
  {label:"Settings",items:["Profile","Connections","System status"]},
 ];

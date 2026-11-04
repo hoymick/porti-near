@@ -1,72 +1,55 @@
-# Porti - Your NEAR Companion
+# Porti — Your NEAR Companion
 
-Porti is an anime-inspired AI companion for NEAR mainnet. Investigate tokens, explore holder concentration, follow accounts, link a wallet to a platform @username, and prepare transfers for explicit wallet approval.
+Porti turns everyday instructions into inspectable NEAR workflows: research a token, follow a wallet, prepare a payment to an @username, buy NEAR through a payment provider, stake, or route NEAR into a supported asset on another network. The movable anime companion uses NEAR AI Cloud; the user keeps wallet signing authority.
 
-## Product status
+**Status: owner-private beta, v0.12.** A feature being implemented or configured is not evidence of a successful financial transaction. [Judge walkthrough](HACKATHON.md) · [Owner setup](docs/commerce-setup.md) · [Transaction behavior](docs/transactions.md) · [Submission checklist](docs/hackathon-submission.md).
 
-This is a hardened private beta. See [production readiness](docs/production-readiness.md), [operations](docs/operations.md) and the System status screen for completed safeguards and remaining launch gates. Do not widen the current owner-private audience until runner authorization and recovery controls are independently verified.
+## What you can try
 
-Porti v0.9 retains a main/agent wallet hub, provider-assisted wallet creation, reviewed funding, token candlesticks and technical readings, accepted-friend chat, Telegram linking and queued observations, and a mint anime companion. Existing finalized research, username proofs and reviewed transfers remain in place.
+| Area | Behavior and boundary |
+| --- | --- |
+| Ask Porti | NEAR AI Cloud tool chat; typed purchase requests open a payment-method card; workflow cards open Swap, Stake, Buy, Transfers or Markets. Pictures use a separate NEAR AI Cloud vision request. |
+| Research | Token metadata, live provider charts, sampled top traders and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
+| Markets | NEAR pool-volume rankings, reported positive 24h gainers, and curated Black Dragon / SHITZU coverage. One returned pool per token; not a complete market-cap ranking or memecoin census. |
+| Wallets / payments | Provider-assisted wallet creation, NEP-413 wallet-control proofs, username-linked NEAR recipients and explicit wallet-approved transfers. Porti does not generate or retain signing keys. |
+| Swap | Native NEAR source; NEAR-mainnet output or supported Ethereum, Base, Arbitrum and BNB Chain output from the live 1Click catalog. Confirmed recipient, NEAR refund address, quote review and separate wallet approval. |
+| Stake | Reviewed liquid staking into the fixed Meta Pool contract. Funded acceptance remains unverified; no built-in exit or native-validator delegation. |
+| Buy NEAR | USD purchase card with card / Apple Pay selection. Signed MoonPay checkout requires merchant credentials, eligibility and trusted customer-IP configuration. No card details in Porti. |
+| Social | Accepted-friend messages and private picture attachments; blocking revokes access. X profile linking uses read-only OAuth scopes and needs owner app credentials. |
+| Alerts | Linked Telegram observations and authorized delivery. Background updater requires the existing owner-private hosting boundary. |
+| Porti Apps | Five curated read-only adapters: Rhea pools, standard staking pools, Meta Pool, NEAR Social and AstroDAO. The separate transaction screens require user approval. |
 
-See [release behavior and limits](docs/release-v08.md). Provider setup is required for actual AI inference and Telegram delivery. Wallet creation and all transfer signatures stay with the user. Missing market or RPC data remains missing; walkthrough values are fictional. Concentration is not a calibrated rug probability.
+## Run and verify
 
-## Development
-
-Use Node.js 22.13 or newer.
+Use Node.js **22.16+**, the locked npm dependencies and the repository scripts:
 
 ```sh
 npm ci
+npm run check
+npm test
+npm run build
 npm run dev
 ```
 
-This repository uses React, vinext/Vite and Cloudflare Workers with D1. The hosting integration supplies request identity and database bindings. A standalone deployment must provide equivalent authentication, private access controls and storage. See [setup](docs/setup.md).
+The application targets React/vinext on Cloudflare Workers with D1 (`DB`) and private R2 (`BUCKET`). Hosting supplies authenticated request identity. An ordinary Node server does not replace those services: see [deployment prerequisites](docs/setup.md) and [owner configuration](docs/commerce-setup.md). Unit tests run without live credentials. A hosted interactive demo requires the configured hosting environment and authorized sign-in.
 
-```sh
-npx tsc --noEmit
-npm test
-npm run build
-```
+## Evidence and limitations
 
-## Configuration
+82 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
 
-Set secrets in the host's runtime configuration, never in source control.
+The development environment returned HTTP 403 from the 1Click catalog and the holder indexer. Porti reports provider failures without fabricated balances, quotes or safety results. X/MoonPay credentials must be supplied by the owner. Funded swaps, purchases and stakes were not executed during development QA. See [production readiness](docs/production-readiness.md), [transaction limits](docs/transactions.md) and [operations](docs/operations.md).
 
-| Name | Purpose |
-| --- | --- |
-| `PORTI_SETTINGS_KEY` | High-entropy server secret used to derive the authenticated settings-encryption key. |
-| `PORTI_APP_URL` | HTTPS deployment origin for operational configuration. |
-| `NEAR_AI_API_KEY` | Optional shared inference credential; users may configure their own encrypted key through Connections. |
-| `NEARBLOCKS_API_KEY` | Optional shared indexer credential. |
-| `NEAR_RPC_URL` | Optional mainnet RPC override. |
-| `DB` | Cloudflare D1 binding; configured by the hosting integration. |
+## Configuration and architecture
 
-This cleaned repository uses Porti-specific encryption configuration. Before deploying over an installation using another encryption scheme, plan migration or re-entry of saved credentials. Never rotate the settings key without a recovery plan.
+Keep secrets in the host's runtime environment or the existing encrypted provider settings, never Git or ordinary chat. [Setup table](docs/commerce-setup.md) lists exact names and callback URLs. Do not rotate `PORTI_SETTINGS_KEY` without a recovery plan.
 
-## Code map
+- `app/near-workspace.tsx`: grouped navigation and workflow composition.
+- `app/porti-companion.tsx`, `lib/near-agent.ts`: chat, bounded tools and review cards.
+- `lib/swaps.ts`, `lib/swap-chains.mjs`: catalog, quotes, single funding request and settlement lookup.
+- `lib/near-services.ts`, `lib/staking.ts`: transfer/staking reviews and strict NEAR receipt evidence.
+- `lib/funding.ts`, `lib/x-connect.ts`: signed provider checkout and owner-bound OAuth PKCE.
+- `lib/media.ts`, `lib/friends.ts`: private image access and current friendship authorization.
+- `lib/markets.ts`, `lib/token-chart.ts`, `lib/token-traders.ts`: labeled provider snapshots.
+- `lib/telegram.ts`, `lib/workspace.ts`, `drizzle/`: observations, durable state, identity and quotas.
 
-- `app/near-workspace.tsx`: Porti navigation and NEAR workflows.
-- `app/porti-companion.tsx`: movable anime launcher and chat.
-- `app/telegram-settings.tsx`: Telegram configuration interface.
-- `app/api/porti/route.ts`: authenticated application actions.
-- `lib/near-agent.ts`: bounded NEAR AI Cloud tool loop.
-- `lib/near-services.ts`: data adapters, transfer reviews and reconciliation.
-- `lib/near-profile.ts`, `lib/near-identity.mjs`: username directory and NEP-413 proofs.
-- `lib/token-risk.mjs`: NEAR holder graphs and partial concentration screening.
-- `lib/telegram.ts`: Telegram linking, queue and runner.
-- `lib/store.mjs`: Porti-only workspace persistence with optimistic revision checks.
-- `db/`, `drizzle/`: database schema and ordered migrations.
-- `tests/`: NEAR, holder-risk, notification-policy and storage checks.
-
-Read [the implementation specification](docs/near-porti-v06.md) and [the current checkpoint](CHECKPOINT.md) before extending or deploying the app.
-
-## Design
-
-Porti uses NEAR-inspired mint, black and white, Fredoka/Nunito typography, and original anime artwork. Font license notices are included in `public/fonts`. Porti is an independent project.
-
-## Porti Apps (v0.10)
-
-The Porti Apps directory adds saved favorites, live read-only Rhea exchange / standard NEAR staking-pool workspaces, assistant tools, and a manifest validator. See [the integration guide](docs/porti-apps.md) and [SDK source](sdk/porti-apps.ts). Third-party registration requires a reviewed server adapter; swaps and staking transactions are not implemented.
-
-## Ecosystem and navigation (v0.11)
-
-Add live Meta Pool, NEAR Social and AstroDAO readers, bringing the directory to five adapters. App reads remain bounded, allowlisted and tied to finalized block evidence. Navigation now groups the existing screens under Research, Wallet, Social & Alerts, and Settings; all features remain accessible.
+Porti uses NEAR-inspired mint, black and white with original anime artwork and Fredoka/Nunito typography. Font licenses are in `public/fonts`. Porti is independent; integrations do not imply official partnerships.

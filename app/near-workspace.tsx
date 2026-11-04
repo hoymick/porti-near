@@ -35,6 +35,11 @@ import {
 import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
 import Staking from "./staking";
+import Swaps from "./swaps";
+import Markets from "./markets";
+import BuyNear from "./buy-near";
+import XConnect from "./x-connect";
+import "./media.css";
 import TopTraders from "./top-traders";
 import PortiNavigation from "./porti-navigation";
 import "./porti-navigation.css";
@@ -58,6 +63,9 @@ const navigation = [
   ["Watchlist", Eye],
   ["Wallets", Wallet],
   ["Stake NEAR", Coins],
+  ["Buy NEAR", Coins],
+  ["Swap", Coins],
+  ["Markets", Coins],
   ["Transfers", Send],
   ["Telegram", Bell],
   ["Friends", MessageCircle],
@@ -163,6 +171,10 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if(new URL(window.location.href).searchParams.get("screen")==="status")setView("System status");
     if(new URL(window.location.href).searchParams.get("screen")==="apps")setView("Porti Apps");
     if(new URL(window.location.href).searchParams.get("screen")==="staking")setView("Stake NEAR");
+    if(new URL(window.location.href).searchParams.get("screen")==="profile")setView("Profile");
+    if(new URL(window.location.href).searchParams.get("screen")==="buy")setView("Buy NEAR");
+    if(new URL(window.location.href).searchParams.get("screen")==="swap")setView("Swap");
+    if(new URL(window.location.href).searchParams.get("screen")==="markets")setView("Markets");
     if (nearAccountOK(token)) {
       setView("Investigate token");
       setAccount(token!);
@@ -310,19 +322,21 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       setBusy("");
     }
   }
-  async function sendChat(text: string) {
+  async function sendChat(text: string, imageId?: string) {
     if (sample) {
       setError("Switch to Live for actual NEAR AI chat.");
-      return;
+      return false;
     }
     const d = await act({
       action: "chat",
       message: text,
+      imageId,
       requestId: crypto.randomUUID(),
       wallet: walletAccount,
       contextToken,
     });
     if (d) setOpenChat(true);
+    return !!d;
   }
   async function investigate(e?: React.FormEvent, kind?: string, a?: string) {
     e?.preventDefault();
@@ -528,6 +542,9 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
   const heading: any = {
     "Porti Apps": "Your favorite NEAR projects, closer together.",
     "System status": "Connections, acceptance evidence and operational limits.",
+    "Markets": "NEAR coins, movers and a curated meme watchlist.",
+    "Swap": "NEAR in. Your chosen token out.",
+    "Buy NEAR": "Your wallet, funded your way.",
     "Stake NEAR": "Review. Approve. Verify your stake.",
     Wallets: "A home for your NEAR wallets.",
     Friends: "Your circle. Your conversations.",
@@ -588,7 +605,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             <MessageCircle size={15} />
           </button>
           <div className="sc-version">
-            NEAR AI Cloud<span>v0.11</span>
+            NEAR AI Cloud<span>v0.12</span>
           </div>
         </div>
       </aside>
@@ -1234,6 +1251,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       </p>
                     </section>
                   )}
+                  {view === "Profile" && !sample && <XConnect/>}
                   {view === "Profile" && (
                     <div className="sc-two-col">
                       <section className="sc-panel sc-form">
@@ -1604,6 +1622,9 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       <h2>Switch to Live to inspect real system status.</h2>
                     </section>
                   )}
+                  {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
+                  {view === "Swap" && <Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
+                  {view === "Buy NEAR" && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
                   {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && (
                     <WalletHub
@@ -1873,6 +1894,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
         setOpen={setOpenChat}
         messages={sample ? [] : p.messages}
         onSend={sendChat}
+        walletAccount={walletAccount}
         busy={!!busy}
         ready={!!p.aiConfigured}
         sample={sample}
@@ -1884,6 +1906,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           setOpenChat(false);
           go("Wallets");
         }}
+        onNavigate={screen=>{if(["Swap","Stake NEAR","Buy NEAR","Markets","Transfers"].includes(screen)){setOpenChat(false);go(screen)}}}
         onReport={openReport}
         onTransfer={openDraft}
         contextToken={contextToken}
