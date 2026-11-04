@@ -70,3 +70,7 @@ Image access expires after 90 days. **Configure an R2 lifecycle rule for the `po
 - Recovery and security review complete before any broader launch.
 
 Primary references: [MoonPay parameters](https://dev.moonpay.com/widget/on-ramp/customization/parameters), [X OAuth PKCE](https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code), [NEAR Intents 1Click](https://docs.near-intents.org/integration/distribution-channels/1click-api/about-1click-api), [NEAR reference integrations](https://github.com/near/agent-skills/tree/main/skills/near-intents).
+
+## Internal agent-wallet activation
+
+The new in-app creation/unlock control needs a dedicated compatible Seams wallet service, registration Gateway and mainnet sponsor. See [internal wallet setup](internal-wallet.md) for the six public configuration values, version requirements and owner acceptance checks. This is separate from NEAR AI Cloud, MoonPay and X credentials.

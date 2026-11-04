@@ -1,6 +1,6 @@
 {
   "name": "porti",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "engines": {
     "node": ">=22.16.0"
@@ -41,7 +41,8 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "3.6.0",
     "vaul": "^1.1.2",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@seams/wallet": "0.34.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.67.0",
@@ -73,6 +74,7 @@
     "fflate": "0.8.3",
     "@esbuild-kit/core-utils": {
       "esbuild": "0.25.12"
-    }
+    },
+    "ws": "8.21.0"
   }
 }

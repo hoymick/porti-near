@@ -1,0 +1,21 @@
+.porti-theme-control{display:grid;gap:8px;margin:22px 0;padding-top:18px;border-top:1px solid #c4d6cb;font:11px Nunito,sans-serif;font-weight:800}.porti-theme-control select{width:100%;padding:10px 12px;border:1px solid #a8bfb0;border-radius:12px;font:inherit;min-height:42px}.porti-theme-control small{font-size:9px;font-weight:400;line-height:1.5}
+html[data-porti-theme=dark]{color-scheme:dark;background:#101715}
+html[data-porti-theme=dark] body:has(.near-app),html[data-porti-theme=dark] .scout-app.near-app,html[data-porti-theme=dark] .near-app :is(.main-shell,main,.topbar){background:#101715!important;color:#e6f2eb!important}
+html[data-porti-theme=dark] .near-app .sidebar{background:#15201b!important;border-color:#3e5b4b}
+html[data-porti-theme=dark] .near-app :is(.sc-panel,.sc-report,.sc-trade-review,.sc-search-panel,.near-chat-page,.apps-card,.apps-workspace,.apps-result,.porti-wallet-dialog,.porti-buy,.porti-chat,.porti-chat>header,.porti-messages,.sc-empty){background:#19271f!important;border-color:#486052!important;box-shadow:3px 3px 0 #080f0a}
+html[data-porti-theme=dark] .near-app :is(h1,h2,h3,h4,strong,label,th){color:#e8f5ed!important}
+html[data-porti-theme=dark] .near-app :is(p,small,.sc-eyebrow,.nav-label,.breadcrumb,.sc-footer,.porti-theme-control){color:#b4c8ba!important}
+html[data-porti-theme=dark] .near-app .sc-panel p,html[data-porti-theme=dark] .near-app .sc-fine,html[data-porti-theme=dark] .near-app .porti-message p{color:#b4c8ba!important}
+html[data-porti-theme=dark] .near-app :is(input:not([type=checkbox]),select,textarea){background:#101c15!important;border-color:#486b56!important;color:#effbf3!important}
+html[data-porti-theme=dark] .near-app :is(input,textarea)::placeholder{color:#9bb2a3!important}
+html[data-porti-theme=dark] .near-app .secondary{background:#24372c!important;border-color:#6b8d78!important;color:#e4f5eb!important;box-shadow:2px 2px 0 #070f0a}
+html[data-porti-theme=dark] .near-app .primary,html[data-porti-theme=dark] .near-app .primary strong,html[data-porti-theme=dark] .near-app .sidebar nav button.active{background:#00ec97!important;color:#071d12!important;border-color:#6affa4!important}
+html[data-porti-theme=dark] .near-app .sidebar nav button{color:#bad0c2}html[data-porti-theme=dark] .near-app .sidebar nav button:not(.active):hover{background:#253e2e}
+html[data-porti-theme=dark] .near-app :is(.swap-wallet,.swap-help,.swap-empty,.porti-wallet-setup,.near-profile-wallet,.near-profile-linked,.near-account-stats>div,.porti-metrics>div,.porti-account-code,.sc-banner,.sc-rule-note,.sc-notice,.porti-friend-messages article,.porti-image-bar,.porti-chat-notice,.porti-chat-welcome,.near-transfer-amount,.near-reconcile){background:#203c2c!important;border-color:#456e54!important;color:#d1e9d9!important}
+html[data-porti-theme=dark] .near-app :is(.near-profile-shortcut,.near-brand-pill,.sc-mode,.porti-message.user,.porti-context,.porti-chat-compose,.porti-theme-control select){background:#203128!important;border-color:#557b62!important;color:#d7e9dc!important}
+html[data-porti-theme=dark] .near-app a:not(.primary):not(.secondary),html[data-porti-theme=dark] .near-app .market-up{color:#5bffc3!important}html[data-porti-theme=dark] .near-app .market-down{color:#ff9e9e!important}
+html[data-porti-theme=dark] .near-app :is(.porti-market-table th,.porti-market-table td,.swap-actions,.swap-history,.swap-catalog-bar,.porti-theme-control,.sc-check){border-color:#3d5848!important}
+html[data-porti-theme=dark] .near-app .sc-panel svg text{fill:#bfd7c8}
+html[data-porti-theme=dark] .near-app .porti-brand{color:#e8f5ed!important}
+html[data-porti-theme=dark] .near-app .porti-floating-hint{background:#21392a;color:#d8f4e2;border-color:#527b60}
+html[data-porti-theme=dark] .near-app .porti-subnav{border-color:#3c6650}

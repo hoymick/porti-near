@@ -31,6 +31,7 @@ export async function walletAction(id: string, input: any, origin: string) {
         id: crypto.randomUUID(),
         role,
         account: input.account,
+        nonceMode: input.proofMode === "wallet-nonce" ? "wallet-nonce" : "server-nonce",
         expiresAt,
         recipient: new URL(origin).host,
         nonce: btoa(
@@ -38,6 +39,7 @@ export async function walletAction(id: string, input: any, origin: string) {
         ),
         message: `Link ${input.account} as my ${role} wallet in Porti.\nWorkspace: ${id}\nNetwork: NEAR mainnet\nExpires: ${new Date(expiresAt).toISOString()}\nOwnership proof only. No funds or spending permissions.`,
       };
+    if(c.nonceMode === "wallet-nonce")c.message += `\nChallenge nonce: ${c.nonce}`;
     await mutate(id, (s) => {
       s.porti ??= initialPorti();
       s.porti.walletChallenge = c;

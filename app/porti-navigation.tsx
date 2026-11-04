@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 const sections = [
  {label:"Research",items:["Markets","Investigate token","Track wallet","Rug Guard","Watchlist"]},
  {label:"Wallet",items:["Wallets","Buy NEAR","Swap","Stake NEAR","Transfers"]},
- {label:"Social & Alerts",items:["Friends","Telegram","Alerts"]},
+ {label:"Social & Alerts",items:["Friends","Porti Care","Telegram","Alerts"]},
  {label:"Settings",items:["Profile","Connections","System status"]},
 ];
 export default function PortiNavigation({navigation,view,onNavigate,unread}:{navigation:readonly (readonly [string,any])[];view:string;onNavigate:(name:string)=>void;unread:number}) {

@@ -82,10 +82,12 @@ export async function profileChallenge(
     username: name,
     account: input.account,
     nonce,
+    nonceMode: input.proofMode === "wallet-nonce" ? "wallet-nonce" : "server-nonce",
     recipient: new URL(origin).host,
     expiresAt,
     message: `Link @${name} to ${input.account} on Porti.\nNetwork: NEAR mainnet\nWorkspace: ${ownerId}\nExpires: ${new Date(expiresAt).toISOString()}\nThis proves wallet control, does not send funds, and makes this username-to-wallet mapping visible to platform users.`,
   };
+  if(challenge.nonceMode === "wallet-nonce")challenge.message += `\nChallenge nonce: ${nonce}`;
   await mutate(ownerId, (s) => {
     s.porti ??= initialPorti();
     s.porti.profileChallenge = challenge;

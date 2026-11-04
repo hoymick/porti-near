@@ -1,0 +1,1 @@
+(()=>{let p='auto';try{p=localStorage.getItem('porti-theme')||'auto'}catch{}if(!['auto','light','dark'].includes(p))p='auto';const h=new Date().getHours(),t=p==='auto'?(h>=7&&h<19?'light':'dark'):p;document.documentElement.dataset.portiTheme=t;document.documentElement.style.colorScheme=t})();

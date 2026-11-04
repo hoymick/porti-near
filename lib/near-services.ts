@@ -637,6 +637,7 @@ export async function validateNearDraft(id: string, draftId: string) {
       "DRAFT_EXPIRED",
       "This transfer review expired or was already submitted. Prepare a new transfer.",
     );
+  if(d.charityCampaignId){const {assertDonationCampaign}=await import("./charity");await assertDonationCampaign(d.charityCampaignId,d.recipient,d.token);}
   if (d.recipientUsername) {
     const { resolveUsername } = await import("./near-profile");
     const profile = await resolveUsername(d.recipientUsername);

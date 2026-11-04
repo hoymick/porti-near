@@ -4,6 +4,7 @@ import "./cartoon.css";
 import "./workspace.css";
 import "./near.css";
 import "./near-theme.css";
+import "./appearance.css";
 
 export const metadata: Metadata = {
   title: "Porti — Your NEAR Companion",
@@ -20,7 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script src="/porti-theme.js" /></head>
       <body className="antialiased">{children}</body>
     </html>
   );

@@ -1,3 +1,4 @@
+import {embeddedConfig} from "./embedded-config.mjs";
 import audit from "../docs/security-audit.json";
 import { env } from "cloudflare:workers";
 import { readWorkspace, mutate } from "./workspace";
@@ -47,7 +48,7 @@ export async function systemStatus(id: string, probe = false) {
     )
     .at(-1);
   return {
-    version: "0.12.0",
+    version: "0.13.0",
     dependencyAudit: { checkedAt: audit.checkedAt, ...audit.vulnerabilities },
     state: "launch-verification-required",
     deploymentBoundary: "owner-private-required",
@@ -56,6 +57,7 @@ export async function systemStatus(id: string, probe = false) {
     rpc,
     providers: {
       aiConfigured: p.aiConfigured,
+      embeddedWalletConfigured: embeddedConfig(env,(env as any).PORTI_APP_URL).ready,
       imagesConfigured: !!env.BUCKET,
       xConfigured: !!((env as any).X_CLIENT_ID&&(env as any).X_CLIENT_SECRET),
       moonpayConfigured: !!((env as any).MOONPAY_PUBLIC_KEY&&(env as any).MOONPAY_SECRET_KEY&&(env as any).PORTI_MOONPAY_IP_HEADER&&(env as any).PORTI_MOONPAY_LIVE_ENABLED==='true'),

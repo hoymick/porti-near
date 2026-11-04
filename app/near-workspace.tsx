@@ -32,6 +32,8 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import Charity from "./charity";
+import ThemeControl from "./theme-control";
 import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
 import Staking from "./staking";
@@ -45,6 +47,7 @@ import PortiNavigation from "./porti-navigation";
 import "./porti-navigation.css";
 import "./porti-apps.css";
 import WalletHub from "./wallet-hub";
+import EmbeddedWalletHost from "./embedded-wallet-host";
 import Friends from "./friends";
 import TelegramSettings from "./telegram-settings";
 import TokenChart from "./token-chart";
@@ -69,6 +72,7 @@ const navigation = [
   ["Transfers", Send],
   ["Telegram", Bell],
   ["Friends", MessageCircle],
+  ["Porti Care", ShieldCheck],
   ["Alerts", Bell],
   ["Profile", UserRound],
   ["Connections", PlugZap],
@@ -105,6 +109,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [openChat, setOpenChat] = useState(false),
+    [embeddedOpen,setEmbeddedOpen] = useState(false),
     [sample, setSample] = useState(false),
     [demo, setDemo] = useState<any>(null),
     [account, setAccount] = useState(""),
@@ -322,6 +327,18 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       setBusy("");
     }
   }
+  async function useEmbeddedWallet(w: any) {
+    if (guard.current || sample) return false;
+    guard.current = true; setBusy("embedded-verify"); setError("");
+    try {
+      const accounts = await w.getAccounts(), account = accounts[0]?.accountId;
+      if (!nearAccountOK(account)) throw Error("Wait for NEAR account activation before verifying.");
+      if(account === p.walletRoles?.main?.account)throw Error("Use a different account from your main wallet for the agent role.");
+      const d=await request({action:"wallet-challenge",role:"agent",account,proofMode:w.proofMode}), c=d.challenge;
+      const proof=await w.signMessage({message:c.message,recipient:c.recipient,nonce:Uint8Array.from(atob(c.nonce),x=>x.charCodeAt(0)),network:"mainnet",signerId:account});
+      const done=await request({action:"wallet-verify",role:"agent",proof});accept(done);setWallet(w);setWalletAccount(account);setMessage(done.message);return true;
+    }catch(e:any){setError(e.message||"Internal wallet ownership verification failed.");return false}finally{guard.current=false;setBusy("")}
+  }
   async function sendChat(text: string, imageId?: string) {
     if (sample) {
       setError("Switch to Live for actual NEAR AI chat.");
@@ -378,6 +395,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       action: "profile-challenge",
       username: profile?.username || username,
       account: walletAccount,
+      proofMode: wallet?.proofMode,
     });
     if (!d) return;
     try {
@@ -548,6 +566,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     "Stake NEAR": "Review. Approve. Verify your stake.",
     Wallets: "A home for your NEAR wallets.",
     Friends: "Your circle. Your conversations.",
+    "Porti Care": "Real needs. Private evidence. Reviewed donations.",
     Telegram: "A signal wherever you are.",
     "Investigate token": "A contract. A clearer picture.",
     "Track wallet": "Follow an account on NEAR.",
@@ -604,8 +623,9 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             </span>
             <MessageCircle size={15} />
           </button>
-          <div className="sc-version">
-            NEAR AI Cloud<span>v0.12</span>
+          <ThemeControl/>
+        <div className="sc-version">
+            NEAR AI Cloud<span>v0.13</span>
           </div>
         </div>
       </aside>
@@ -1628,6 +1648,8 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                   {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && (
                     <WalletHub
+                      onCreateInternal={()=>setEmbeddedOpen(true)}
+                      walletError={error}
                       roles={p.walletRoles || {}}
                       account={walletAccount}
                       sample={sample}
@@ -1654,6 +1676,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       }}
                     />
                   )}
+                  {view === "Porti Care" && <Charity roles={p.walletRoles||{}} account={walletAccount} sample={sample} onConnect={()=>connect("main")} onDraft={openDraft}/>}
                   {view === "Friends" && <Friends sample={sample} />}
                   {view === "Telegram" && <TelegramSettings sample={sample} />}
                   {view === "Connections" && (
@@ -1889,6 +1912,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           </footer>
         </main>
       </div>
+      <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onDisconnected={()=>{if(wallet?.kind==="porti-embedded"){setWallet(null);setWalletAccount("")}}}/>
       <PortiCompanion
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat}

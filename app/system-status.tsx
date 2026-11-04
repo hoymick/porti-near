@@ -34,7 +34,7 @@ export default function SystemStatus() {
   return (
     <>
       <section className="sc-panel">
-        <span className="sc-eyebrow">OPERATIONS · PORTI V0.12</span>
+        <span className="sc-eyebrow">OPERATIONS · PORTI V0.13</span>
         <h2>Evidence before launch.</h2>
         <p>
           Hardening is installed. Real account acceptance and an independent
@@ -57,6 +57,7 @@ export default function SystemStatus() {
           <>
             <div className="porti-metrics">
               {[
+                ["Internal wallet service", data.providers.embeddedWalletConfigured ? "Configured · owner acceptance required" : "Owner service setup required"],
                 ["Private image storage", data.providers.imagesConfigured ? "Configured" : "Setup required"],
                 ["X OAuth", data.providers.xConfigured ? "Configured · test linking" : "Owner credentials required"],
                 ["MoonPay checkout", data.providers.moonpayConfigured ? "Configured · test checkout" : "Owner setup required"],
