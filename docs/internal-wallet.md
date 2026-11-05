@@ -2,7 +2,7 @@
 
 ## Default: free device wallet
 
-Porti now defaults to an Ed25519 NEAR implicit wallet generated in the user’s browser. It needs no Seams project, provider credits or paid wallet API. This generates an address locally; it does not create a funded on-chain account. Native NEAR must be sent to the address to activate it, with network/account-creation charges paid by the sender. Do not send fungible tokens to activate an address.
+Porti now defaults to an Ed25519 NEAR implicit wallet generated in the user’s browser. It needs no Seams project, provider credits or paid wallet API. This generates an address locally; it does not create a funded on-chain account. Activation requires an on-chain NEAR transfer, which can have a 0 NEAR deposit; network/account-creation charges are paid by the sender. A positive deposit is optional and adds funds for spending. Do not send fungible tokens to activate an address.
 
 The browser encrypts the PKCS8 signing key with AES-256-GCM using a random 16-byte salt, a fresh 12-byte IV and PBKDF2-SHA-256 at 600,000 iterations. A unique 12–256 character password is required. Address, public key, format, network and creation metadata are authenticated as encryption additional data. The encrypted record is stored in IndexedDB in a namespace derived from the authenticated Porti owner. This namespace prevents accidental account mixing; it is not an independent security boundary against same-origin JavaScript.
 
@@ -16,7 +16,7 @@ The local adapter supports reviewed Transfer and FunctionCall only, preserves ex
 
 Acceptance: automated tests cover encryption/restore, wrong passwords, tampering, NEP-413 verification, independently checked transaction signatures, activation gating, cancellation, locking during approval, exact-action binding, durable-journal failure and ambiguous sends. Real browser wallet creation, funded activation, restore on another device and a manually approved finalized transaction still require the wallet owner. No production wallet was created or funded during automated QA.
 
-Requires a secure HTTPS origin, IndexedDB, Ed25519 WebCrypto, Web Locks and access to the public NEAR mainnet RPC. RPC outages remain visible and cannot produce a false activation result. Legacy HTTP-200 query errors are normalized; a missing access key triggers an account-existence lookup before an address is labeled inactive. An existing account with a missing key is a separate error, never a funding prompt.
+Requires a secure HTTPS origin, IndexedDB, Ed25519 WebCrypto, Web Locks and access to the public NEAR mainnet RPC. RPC outages remain visible and cannot produce a false activation result. Legacy HTTP-200 query errors are normalized; a missing access key triggers an account-existence lookup before an address is labeled as awaiting its first deposit. An existing account with a missing key is a separate error, never a funding prompt.
 
 ## Optional managed passkey service
 
@@ -69,3 +69,7 @@ Automated tests cover configuration gating, exact action mapping, signer changes
 Owner acceptance still requires: compatible live infrastructure, registration sponsorship, real browser passkey creation/unlock, recovery on another authorized device, expected NEAR mainnet account activation, replay rejection, lock/session expiry, username linking, cancelled approval, and a small manually approved transaction with verified final evidence. No real wallet or passkey was created during development QA. Do not fund a newly displayed account until these checks succeed.
 
 Provider references: https://github.com/seams-tech/seams-wallet and the installed `@seams/wallet@0.34.0/README.md`. The repository's development branch can be newer than the published package; the installed declarations define this integration.
+
+### Funding UI
+
+The free wallet shows Wallet created, NEAR balance, Fund wallet and Refresh balance. Fund wallet reveals the exact address and copy control; it does not broadcast a transaction or create a checkout. The user sends native NEAR from an existing wallet or exchange. There is no separate user activation step. First-deposit account creation happens on NEAR; the sender pays the applicable charges. Internally, finalized key existence is still required before linking and signing. Zero-balance existing accounts remain eligible for ownership linking.

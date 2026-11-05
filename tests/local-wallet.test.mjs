@@ -52,3 +52,10 @@ test('legacy errors for an existing account and provider failures cannot claim a
  await assert.rejects(localRpc('query',{account_id:vault.account},async()=>Response.json({result:{error:'unexpected provider error'}})));
  await assert.rejects(localAccountState(vault,async()=>{throw Error('network unavailable')}));
 });
+test('balance overview distinguishes a created zero-balance account from a missing account',async()=>{
+ const {localWalletOverview}=await import('../lib/local-wallet-signing.mjs');
+ const rpc=async(m,p)=>m==='status'?{chain_id:'mainnet'}:p.request_type==='view_access_key'?{permission:'FullAccess',nonce:state.nonce,block_hash:state.blockHash}:{amount:'0'};
+ assert.equal((await localWalletOverview(vault,rpc)).balance,'0');
+ assert.deepEqual(await localWalletOverview(vault,async(m)=>{if(m==='status')return {chain_id:'mainnet'};throw Object.assign(Error(),{rpcName:'UNKNOWN_ACCOUNT'})}),{active:false,balance:null});
+ await assert.rejects(localWalletOverview(vault,async(m,p)=>p?.request_type==='view_account'?{amount:0}:rpc(m,p)),/balance/);
+});
