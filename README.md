@@ -37,7 +37,7 @@ The application targets React/vinext on Cloudflare Workers with D1 (`DB`) and pr
 
 ## Evidence and limitations
 
-107 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
+112 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
 
 The development environment returned HTTP 403 from the 1Click catalog and the holder indexer. Porti reports provider failures without fabricated balances, quotes or safety results. X/MoonPay credentials must be supplied by the owner. Funded swaps, purchases and stakes were not executed during development QA. See [production readiness](docs/production-readiness.md), [transaction limits](docs/transactions.md) and [operations](docs/operations.md).
 
@@ -55,3 +55,7 @@ Keep secrets in the host's runtime environment or the existing encrypted provide
 - `lib/telegram.ts`, `lib/workspace.ts`, `drizzle/`: observations, durable state, identity and quotas.
 
 Porti uses NEAR-inspired mint, black and white with original anime artwork and Fredoka/Nunito typography. Font licenses are in `public/fonts`. Porti is independent; integrations do not imply official partnerships.
+
+## Independent Cloudflare pilot
+
+The optional `cloudflare-standalone` branch adds Cloudflare Access authentication, a separate D1 build/deploy target and a disabled shared runner. See [standalone setup](docs/cloudflare-hosting.md). This target requires its own database and Access configuration; existing hosted data and credentials are not migrated. R2 is optional and off by default.

@@ -1,3 +1,4 @@
+import {standaloneRequest} from '../lib/cloudflare-access.mjs';
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
@@ -8,6 +9,9 @@ const worker = {
     env: Cloudflare.Env,
     ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>,
   ) {
+    const guarded = await standaloneRequest(request, env);
+    if (guarded instanceof Response) return guarded;
+    request = guarded;
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.
