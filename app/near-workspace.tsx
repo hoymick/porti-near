@@ -728,7 +728,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
               </button>
             </div>
           )}
-          {!signedIn ? (
+          {!signedIn && !sample ? (
             <section className="sc-panel sc-empty">
               <h1>Meet your onchain companion.</h1>
               <p>
