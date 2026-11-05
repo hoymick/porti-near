@@ -332,7 +332,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     guard.current = true; setBusy("embedded-verify"); setError("");
     try {
       const accounts = await w.getAccounts(), account = accounts[0]?.accountId;
-      if (!nearAccountOK(account)) throw Error("Wait for NEAR account activation before verifying.");
+      if (!nearAccountOK(account)) throw Error("Select a valid NEAR mainnet wallet before verifying.");
       if(account === p.walletRoles?.main?.account)throw Error("Use a different account from your main wallet for the agent role.");
       const d=await request({action:"wallet-challenge",role:"agent",account,proofMode:w.proofMode}), c=d.challenge;
       const proof=await w.signMessage({message:c.message,recipient:c.recipient,nonce:Uint8Array.from(atob(c.nonce),x=>x.charCodeAt(0)),network:"mainnet",signerId:account});
@@ -889,10 +889,10 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       >
                         <UsersIcon />
                         <strong>
-                          Tell me about the top 10 holders of this token
+                          Show me this token’s sampled top traders
                         </strong>
                         <span>
-                          Contract → holder data → concentration
+                          Contract → covered pool → recent trader activity
                           <ArrowRight size={14} />
                         </span>
                       </button>
@@ -900,7 +900,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                         <ShieldCheck size={20} />
                         <strong>Show me the token’s warning signs</strong>
                         <span>
-                          Bubble map → flags → unanswered checks
+                          Available evidence → flags → unanswered checks
                           <ArrowRight size={14} />
                         </span>
                       </button>
@@ -2270,3 +2270,4 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
 function UsersIcon() {
   return <Network size={20} />;
 }
+
