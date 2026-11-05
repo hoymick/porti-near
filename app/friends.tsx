@@ -1,4 +1,5 @@
 "use client";
+import {browserRequestId} from '../lib/browser-request-id.mjs';
 import ImageUpload from "./image-upload";
 import React, { useEffect, useRef, useState } from "react";
 export default function Friends({ sample = false }: { sample?: boolean }) {
@@ -199,7 +200,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           className="sc-form"
           onSubmit={(e) => {
             e.preventDefault();
-            act("send", { text, imageId:image?.imageId, id: crypto.randomUUID() });
+            act("send", { text, imageId:image?.imageId, id: browserRequestId() });
           }}
         >
           <ImageUpload scope="friend" pair={pair} disabled={busy||sample||!pair} onUpload={setImage}/>{image&&<div><img className="porti-chat-image" src={image.url} alt="Photo ready to send"/><button type="button" onClick={()=>setImage(null)}>Remove picture</button></div>}<label htmlFor="friend-message">Message</label>

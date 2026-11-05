@@ -1,4 +1,5 @@
 "use client";
+import {browserRequestId} from '../lib/browser-request-id.mjs';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -138,12 +139,12 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     [expired, setExpired] = useState(false),
     [profileConsent, setProfileConsent] = useState(false);
   const transferRequest = useRef({
-    id: crypto.randomUUID(),
+    id: browserRequestId(),
     expiresAt: Date.now() + 180000,
   });
   useEffect(() => {
     transferRequest.current = {
-      id: crypto.randomUUID(),
+      id: browserRequestId(),
       expiresAt: Date.now() + 180000,
     };
   }, [form, walletAccount]);
@@ -348,7 +349,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       action: "chat",
       message: text,
       imageId,
-      requestId: crypto.randomUUID(),
+      requestId: browserRequestId(),
       wallet: walletAccount,
       contextToken,
     });
@@ -429,7 +430,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     }
     if (transferRequest.current.expiresAt <= Date.now())
       transferRequest.current = {
-        id: crypto.randomUUID(),
+        id: browserRequestId(),
         expiresAt: Date.now() + 180000,
       };
     const d = await act({
@@ -489,7 +490,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       accept(done);
       setDraft({ ...draft, status: "finalized", hash });
       transferRequest.current = {
-        id: crypto.randomUUID(),
+        id: browserRequestId(),
         expiresAt: Date.now() + 180000,
       };
       setMessage("Transfer finalized and matched to your reviewed details.");
@@ -550,7 +551,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if (d?.receipt) {
       setDraft({ ...draft, status: "finalized", hash: receiptHash });
       transferRequest.current = {
-        id: crypto.randomUUID(),
+        id: browserRequestId(),
         expiresAt: Date.now() + 180000,
       };
       sessionStorage.removeItem("porti-pending-draft");
