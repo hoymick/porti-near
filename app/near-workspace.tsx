@@ -1926,6 +1926,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       </div>
       <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onRequestOpen={()=>setEmbeddedOpen(true)} onDisconnected={()=>{if(["porti-embedded","porti-local"].includes(wallet?.kind)){setWallet(null);setWalletAccount("")}}}/>
       <PortiCompanion
+        swapPanel={<Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat}
         setOpen={setOpenChat}
