@@ -1701,6 +1701,22 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                               ? "AI key configured"
                               : "AI is not connected yet"}
                           </span>
+                          <p>
+                            In NEAR AI Cloud, open Credits to add usage
+                            credits, then open API Keys to create a key.
+                            Return here to connect it. NEAR AI handles billing
+                            in its own dashboard.
+                          </p>
+                          <div className="sc-source-links">
+                            <a
+                              href="https://cloud.near.ai"
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Get an API key or add credits
+                              <ExternalLink size={13} />
+                            </a>
+                          </div>
                           <form
                             onSubmit={async (e) => {
                               e.preventDefault();
@@ -1757,14 +1773,6 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                             </button>
                           </form>
                           <div className="sc-source-links">
-                            <a
-                              href="https://cloud.near.ai"
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Open NEAR AI Cloud
-                              <ExternalLink size={13} />
-                            </a>
                             {p.aiConfigured && (
                               <button
                                 disabled={!!busy}
