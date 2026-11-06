@@ -12,12 +12,30 @@ export function rankTraders(payload:any,contract:string,now=Date.now()) {
  return {rows:[...wallets.values()].map(w=>({...w,volumeUsd:w.buyUsd+w.sellUsd})).sort((a,b)=>b.volumeUsd-a.volumeUsd).slice(0,20),accepted,skipped,oldest:accepted?oldest:null,newest:accepted?newest:null,returned:payload.data.length};
 }
 const cache=new Map<string,{at:number,result:any}>();
-export async function tokenTraders(contract:string){
- if(!nearAccountOK(contract))throw new DomainError('INVALID_TOKEN','Use an exact NEAR token contract.');
- const prior=cache.get(contract);if(prior&&Date.now()-prior.at<60000)return prior.result;
+async function fetchTraders(contract:string){
  const pools=await get(`/networks/near/tokens/${encodeURIComponent(contract)}/pools?page=1`);
  const pool=(Array.isArray(pools.data)?pools.data:[]).filter((p:any)=>p.id?.startsWith('near_')&&['base_token','quote_token'].some(k=>p.relationships?.[k]?.data?.id==='near_'+contract)&&Number(p.attributes?.reserve_in_usd)>0).sort((a:any,b:any)=>Number(b.attributes.reserve_in_usd)-Number(a.attributes.reserve_in_usd))[0];
  if(!pool)throw new DomainError('NO_MARKET','No covered NEAR trading pool was returned for this token.',404);
  const address=pool.id.slice(5),raw=await get(`/networks/near/pools/${encodeURIComponent(address)}/trades`),result={...rankTraders(raw,contract),contract,pool:address,checkedAt:Date.now(),source:'GeckoTerminal',url:'https://www.geckoterminal.com/near/pools/'+encodeURIComponent(address),coverage:'One pool, selected by reported reserves. Most recent returned swaps within 24 hours; not complete 24-hour volume or all-market activity. Routers and automated accounts may be included. Buy/sell direction follows the exact token leg; volume is provider-reported USD, not profit.'};
- if(cache.size>=32)cache.delete(cache.keys().next().value!);cache.set(contract,{at:Date.now(),result});return result;
+ if(!cache.has(contract)&&cache.size>=32)cache.delete(cache.keys().next().value!);
+ cache.set(contract,{at:result.checkedAt,result});
+ return result;
+}
+
+const inflight=new Map<string,ReturnType<typeof fetchTraders>>();
+export async function tokenTraders(contract:string){
+ if(!nearAccountOK(contract))throw new DomainError('INVALID_TOKEN','Use an exact NEAR token contract.');
+ const prior=cache.get(contract);
+ if(prior&&Date.now()-prior.at<60000)return prior.result;
+ const pending=inflight.get(contract);
+ if(pending)return pending;
+ if(inflight.size>=8)throw new DomainError('TRADERS_BUSY','Trader requests are busy. Try again shortly.',503);
+ const work=fetchTraders(contract).catch(error=>{
+  if(error instanceof DomainError&&error.code==='MARKET_COOLDOWN'&&prior&&Date.now()-prior.at<900000){
+   return {...prior.result,stale:true};
+  }
+  throw error;
+ }).finally(()=>inflight.delete(contract));
+ inflight.set(contract,work);
+ return work;
 }
