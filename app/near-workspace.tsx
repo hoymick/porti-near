@@ -1701,6 +1701,27 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                               ? "AI key configured"
                               : "AI is not connected yet"}
                           </span>
+                          <div className="sc-rule-note">
+                            <Sparkles size={18} aria-hidden="true" />
+                            <div>
+                              <strong>Free NEAR AI credits for builders</strong>
+                              <p>
+                                Check NEAR Builders for an active credit offer.
+                                If you qualify, claim it there and connect your
+                                new API key below.
+                              </p>
+                              <div className="sc-source-links">
+                                <a
+                                  href="https://nearbuilders.org/dashboard"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Get free credits on NEAR Builders
+                                  <ExternalLink size={13} />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
                           <p>
                             In NEAR AI Cloud, open Credits to add usage
                             credits, then open API Keys to create a key.
