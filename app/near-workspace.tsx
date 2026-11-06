@@ -951,7 +951,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                           <h3>Your first clue is a contract.</h3>
                           <p>
                             Start with wrap.near, or explore the fictional
-                            holder-map walkthrough.
+                            token-risk walkthrough.
                           </p>
                           <div className="sc-buttons">
                             <button
@@ -967,7 +967,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                               className="secondary"
                               onClick={() => {
                                 setSample(true);
-                                openReport(nearDemo().snapshot);
+                                setReport(nearDemo().snapshot);
                               }}
                             >
                               Try the walkthrough
@@ -1092,28 +1092,31 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                             </button>
                           </div>
                           <small>
-                            NEAR mainnet accounts and NEP-141 token contracts.
-                            EVM addresses and .testnet accounts are not
-                            accepted.
+                            {view === "Track wallet"
+                              ? "Use a NEAR mainnet account address."
+                              : "Use a NEP-141 token contract on NEAR mainnet."}{" "}
+                            EVM addresses and .testnet accounts are not accepted.
                           </small>
                         </form>
-                        <div className="sc-quick-links">
-                          <button
-                            className="secondary"
-                            onClick={() => setAccount("wrap.near")}
-                          >
-                            Use wrap.near
-                          </button>
-                          <button
-                            className="secondary"
-                            onClick={() => {
-                              setSample(true);
-                              openReport(demo.snapshot);
-                            }}
-                          >
-                            Open sample risk report
-                          </button>
-                        </div>
+                        {view !== "Track wallet" && (
+                          <div className="sc-quick-links">
+                            <button
+                              className="secondary"
+                              onClick={() => setAccount("wrap.near")}
+                            >
+                              Use wrap.near
+                            </button>
+                            <button
+                              className="secondary"
+                              onClick={() => {
+                                setSample(true);
+                                setReport(demo.snapshot);
+                              }}
+                            >
+                              Open sample risk report
+                            </button>
+                          </div>
+                        )}
                       </section>
                       {view === "Rug Guard" && (
                         <section className="sc-panel">
