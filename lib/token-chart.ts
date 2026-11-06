@@ -19,9 +19,12 @@ export async function get(path: string) {
     });
     if (r.status === 429) {
       const retryAfter = r.headers.get("Retry-After");
-      const delay = retryAfter && /^\d+$/.test(retryAfter)
-        ? Number(retryAfter) * 1000
-        : Date.parse(retryAfter ?? "") - Date.now();
+      let delay = 0;
+      if (retryAfter) {
+        delay = /^\d+$/.test(retryAfter)
+          ? Number(retryAfter) * 1000
+          : Date.parse(retryAfter) - Date.now();
+      }
       providerCooldown = Date.now() + Math.min(900000, Math.max(60000, delay || 0));
       throw new DomainError(
         "MARKET_COOLDOWN",
