@@ -79,3 +79,12 @@ html[data-porti-theme=dark] .near-app .porti-swap .swap-asset-panel { background
   .porti-swap .swap-receive-panel { grid-template-columns: minmax(0, 1fr); }
   .porti-swap .swap-actions > .primary { flex: auto; }
 }
+
+.porti-chat-swap { display: grid; gap: 8px; }
+.porti-chat-swap > button { justify-self: end; }
+.scout-app.near-app .porti-chat .porti-swap-inline { padding: 14px; gap: 14px; }
+.porti-swap-inline .swap-fields, .porti-swap-inline .swap-receive-panel {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.porti-swap-inline .swap-wallet { padding: 12px; }

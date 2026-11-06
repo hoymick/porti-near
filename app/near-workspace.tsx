@@ -1701,6 +1701,27 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                               ? "AI key configured"
                               : "AI is not connected yet"}
                           </span>
+                          <div className="sc-rule-note">
+                            <Sparkles size={18} aria-hidden="true" />
+                            <div>
+                              <strong>$10 in free NEAR AI credits</strong>
+                              <p>
+                                Claim the $10 offer on NEAR Builders if it is
+                                available to your account. Then return here to
+                                connect the API key they issue.
+                              </p>
+                              <div className="sc-source-links">
+                                <a
+                                  href="https://nearbuilders.org/dashboard"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Claim $10 in credits on NEAR Builders
+                                  <ExternalLink size={13} />
+                                </a>
+                              </div>
+                            </div>
+                          </div>
                           <p>
                             In NEAR AI Cloud, open Credits to add usage
                             credits, then open API Keys to create a key.
@@ -1926,6 +1947,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       </div>
       <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onRequestOpen={()=>setEmbeddedOpen(true)} onDisconnected={()=>{if(["porti-embedded","porti-local"].includes(wallet?.kind)){setWallet(null);setWalletAccount("")}}}/>
       <PortiCompanion
+        swapPanel={<Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat}
         setOpen={setOpenChat}
