@@ -9,7 +9,7 @@ export async function get(path: string) {
     if (providerCooldown > Date.now())
       throw new DomainError(
         "MARKET_COOLDOWN",
-        "Market provider cooldown is active. Retrying later.",
+        "GeckoTerminal is cooling down after a rate limit. Try again later.",
         503,
       );
     const r = await fetch("https://api.geckoterminal.com/api/v2" + path, {
@@ -17,11 +17,22 @@ export async function get(path: string) {
       redirect: "manual",
       signal: AbortSignal.timeout(12000),
     });
-    if (r.status === 429) providerCooldown = Date.now() + 60000;
+    if (r.status === 429) {
+      const retryAfter = r.headers.get("Retry-After");
+      const delay = retryAfter && /^\d+$/.test(retryAfter)
+        ? Number(retryAfter) * 1000
+        : Date.parse(retryAfter ?? "") - Date.now();
+      providerCooldown = Date.now() + Math.min(900000, Math.max(60000, delay || 0));
+      throw new DomainError(
+        "MARKET_COOLDOWN",
+        "GeckoTerminal is rate-limiting requests. Try again later.",
+        503,
+      );
+    }
     if (!r.ok)
       throw new DomainError(
         "CHART_UNAVAILABLE",
-        `Market data returned HTTP ${r.status}. No chart reading was produced.`,
+        `Market data returned HTTP ${r.status}.`,
         503,
       );
     return await responseJSON(r, 500000);
@@ -29,7 +40,7 @@ export async function get(path: string) {
     if (e instanceof DomainError) throw e;
     throw new DomainError(
       "CHART_UNAVAILABLE",
-      "Market data is unavailable. No live chart reading was produced.",
+      "GeckoTerminal market data is unavailable.",
       503,
     );
   }
