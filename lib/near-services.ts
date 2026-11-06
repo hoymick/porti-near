@@ -330,11 +330,13 @@ export async function nearInvestigate(
       "Token total supply was not a raw integer.",
     );
   let holders: any[] = [];
+  let holderLookupFailed = false;
   try {
     holders = parseHolders(
       await indexer(id, `/fts/${account}/holders?limit=30`),
     );
   } catch (e: any) {
+    holderLookupFailed = true;
     warnings.push(
       e instanceof DomainError
         ? e.message
@@ -368,7 +370,13 @@ export async function nearInvestigate(
     );
   }
   // Only finalized, raw RPC-confirmed holder entries are safe for concentration calculations.
+  const candidateCount = holders.length;
   holders = holders.slice(0, 10).filter((h: any) => h.value !== null);
+  const holderStatus = holders.length
+    ? "confirmed_sample"
+    : holderLookupFailed || candidateCount
+      ? "unavailable"
+      : "no_candidates";
   const snapshot: any = {
     kind,
     address: account,
@@ -376,6 +384,7 @@ export async function nearInvestigate(
     checkedAt: Date.now(),
     source: "NEAR final RPC + NearBlocks holder candidates",
     metadata: { ...metadata, total_supply: supply, contract: null },
+    holderStatus,
     holders,
     transfers: [],
     balances: [],
@@ -985,6 +994,8 @@ export async function nearTool(
       output: {
         contract: snapshot.address,
         metadata: snapshot.metadata,
+        totalSupplyFormatted: `${decimal(snapshot.metadata.total_supply, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
+        holderStatus: snapshot.holderStatus,
         top10: snapshot.holders,
         risk: {
           level: snapshot.risk.level,
