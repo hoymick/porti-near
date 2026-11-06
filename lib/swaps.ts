@@ -34,6 +34,7 @@ export async function swapAction(id:string,input:any){
  if(input.action==='cancel'){await mutate(id,s=>{const x=s.porti.swapOrders.find((x:any)=>x.id===o.id);if(!['preview','wallet_requested'].includes(x.status))throw new DomainError('SWAP_PENDING','Wallet approval has already been requested. Check the original outcome; do not send a second deposit.');x.status='cancelled'});return {cancelled:true};}
  if(input.action==='approve'){
   await walletOwner(id,o.sender);if(o.status!=='preview'||o.expiresAt<Date.now())throw new DomainError('SWAP_EXPIRED','Swap preview expired or approval already requested.');
+  if(o.destination.blockchain==='near'&&!(await viewFunction(id,o.destination.contract,'storage_balance_of',{account_id:o.sender})))throw new DomainError('SWAP_REGISTRATION','Register your wallet to receive this token before continuing. No swap was sent.');
   await mutate(id,s=>{const x=s.porti.swapOrders.find((x:any)=>x.id===o.id);if(x.status!=='preview'||x.expiresAt<Date.now()||s.porti.swapOrders.some((x:any)=>x.id!==o.id&&x.sender===o.sender&&['committing','wallet_requested','wallet_funding','submitted'].includes(x.status)))throw new DomainError('SWAP_PENDING','A swap is already pending. Check its original outcome.');x.status='committing'});
   let ready=false;try{const request={...o.request,dry:false,deadline:new Date(Date.now()+600000).toISOString()},raw=await provider('/quote',request),q=validateQuote(raw,request,true);if(BigInt(q.minAmountOut)<BigInt(o.minAmountOut))throw new DomainError('SWAP_MOVED','Output moved below your reviewed minimum. Request a fresh preview.');
    const reg=await viewFunction(id,'wrap.near','storage_balance_of',{account_id:o.sender});let storage='0';if(!reg){const b=await viewFunction(id,'wrap.near','storage_balance_bounds');if(!integer(b?.min)||BigInt(b.min)>BigInt('100000000000000000000000'))throw new DomainError('SWAP_STORAGE','Wrapped NEAR storage fee unavailable.');storage=b.min;}
@@ -43,6 +44,7 @@ export async function swapAction(id:string,input:any){
  }
  if(input.action==='fund'){
   await walletOwner(id,o.sender);if(o.status!=='wallet_requested'||o.expiresAt<Date.now()+30000)throw new DomainError('SWAP_EXPIRED','Executable quote expired or wallet approval already requested. Check the original order.');
+  if(o.destination.blockchain==='near'&&!(await viewFunction(id,o.destination.contract,'storage_balance_of',{account_id:o.sender})))throw new DomainError('SWAP_REGISTRATION','Register your wallet to receive this token before continuing. No swap was sent.');
   await feeBudget(id,o.sender,o.raw,o.storageRaw||'0');
   await mutate(id,s=>{const x=s.porti.swapOrders.find((x:any)=>x.id===o.id);if(x.status!=='wallet_requested'||x.expiresAt<Date.now()+30000)throw new DomainError('SWAP_ALREADY_REQUESTED','Wallet approval already requested.');x.status='wallet_funding'});return {transaction:o.transaction};
  }
