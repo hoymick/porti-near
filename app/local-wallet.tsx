@@ -10,7 +10,7 @@ export default function LocalWallet({scope,open,onUse,onDisconnected,onRequestOp
  function lock(){generation.current++;key.current=null;expires.current=0;resolve.current?.(false);resolve.current=null;setApproval(null);setUnlocked(false);setPassword('');setRepeat('');disconnected.current();}
  useEffect(()=>{let live=true;vaultStore(scope,'read').then((v:any)=>{if(live){if(v?.vault)validateVault(v.vault);setRecord(v||null);setPending(v?.pending||null)}}).catch((e:any)=>{if(live)setNotice(e.message)}).finally(()=>{if(live)setLoading(false)});return()=>{live=false;key.current=null;resolve.current?.(false)}},[scope]);
  useEffect(()=>{const timer=setInterval(()=>{if(key.current&&Date.now()>=expires.current)lock()},1000);const hidden=()=>{if(document.hidden&&key.current)lock()};document.addEventListener('visibilitychange',hidden);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',hidden)}},[]);
- useEffect(()=>{if(!open&&resolve.current){resolve.current(false);resolve.current=null;setApproval(null)}},[open]);
+ useEffect(()=>{if(!open){setPassword('');setRepeat('');if(resolve.current){resolve.current(false);resolve.current=null;setApproval(null)}}},[open]);
  useEffect(()=>{if(approval&&open){approvalPanel.current?.scrollIntoView({block:'nearest'});approvalPanel.current?.querySelector<HTMLButtonElement>('button')?.focus()}},[approval,open]);
  function getKey(){if(!key.current||Date.now()>=expires.current)throw Error('Wallet is locked. Unlock it again.');return key.current}
  async function task(work:()=>Promise<void>){if(busy)return;setBusy(true);setNotice('');try{await work()}catch(e:any){setNotice(e.message||'Wallet action failed.')}finally{setBusy(false)}}

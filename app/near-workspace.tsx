@@ -110,7 +110,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [openChat, setOpenChat] = useState(false),
-    [embeddedOpen,setEmbeddedOpen] = useState(false),
+    [walletLocation,setWalletLocation] = useState<"modal" | "chat" | null>(null),
     [sample, setSample] = useState(false),
     [demo, setDemo] = useState<any>(null),
     [account, setAccount] = useState(""),
@@ -1652,7 +1652,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                   {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && (
                     <WalletHub
-                      onCreateInternal={()=>setEmbeddedOpen(true)}
+                      onCreateInternal={()=>setWalletLocation("modal")}
                       walletError={error}
                       roles={p.walletRoles || {}}
                       account={walletAccount}
@@ -1945,12 +1945,36 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           </footer>
         </main>
       </div>
-      <EmbeddedWalletHost open={embeddedOpen} onClose={()=>setEmbeddedOpen(false)} onUse={useEmbeddedWallet} onRequestOpen={()=>setEmbeddedOpen(true)} onDisconnected={()=>{if(["porti-embedded","porti-local"].includes(wallet?.kind)){setWallet(null);setWalletAccount("")}}}/>
       <PortiCompanion
         swapPanel={<Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
         showHint={view === "Overview" || view === "Ask Porti"}
-        open={openChat}
+        open={openChat && walletLocation !== "modal"}
         setOpen={setOpenChat}
+        walletInChat={walletLocation === "chat" && !sample}
+        onWalletSetup={() => setWalletLocation("chat")}
+        walletPanel={
+          <EmbeddedWalletHost
+            open={walletLocation === "modal" || (walletLocation === "chat" && openChat && !sample)}
+            inline={walletLocation === "chat"}
+            onClose={() => setWalletLocation(null)}
+            onWalletOptions={() => {
+              setWalletLocation(null);
+              setOpenChat(false);
+              go("Wallets");
+            }}
+            onUse={useEmbeddedWallet}
+            onRequestOpen={() => {
+              if (walletLocation === "chat" && !sample) setOpenChat(true);
+              else setWalletLocation("modal");
+            }}
+            onDisconnected={() => {
+              if (["porti-embedded", "porti-local"].includes(wallet?.kind)) {
+                setWallet(null);
+                setWalletAccount("");
+              }
+            }}
+          />
+        }
         messages={sample ? [] : p.messages}
         onSend={sendChat}
         walletAccount={walletAccount}
