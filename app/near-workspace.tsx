@@ -1704,11 +1704,11 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                           <div className="sc-rule-note">
                             <Sparkles size={18} aria-hidden="true" />
                             <div>
-                              <strong>Free NEAR AI credits for builders</strong>
+                              <strong>$10 in free NEAR AI credits</strong>
                               <p>
-                                Check NEAR Builders for an active credit offer.
-                                If you qualify, claim it there and connect your
-                                new API key below.
+                                Claim the $10 offer on NEAR Builders if it is
+                                available to your account. Then return here to
+                                connect the API key they issue.
                               </p>
                               <div className="sc-source-links">
                                 <a
@@ -1716,7 +1716,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                 >
-                                  Get free credits on NEAR Builders
+                                  Claim $10 in credits on NEAR Builders
                                   <ExternalLink size={13} />
                                 </a>
                               </div>
