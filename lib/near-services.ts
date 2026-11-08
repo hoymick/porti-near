@@ -179,6 +179,9 @@ async function fetchJSON(
 }
 export async function nearRpc(id: string, method: string, params: any) {
   const { rpc } = await portiConfig(id, "rpc");
+  return rpcReadAt(rpc, method, params);
+}
+async function rpcReadAt(rpc: string, method: string, params: any) {
   if (!["status", "query", "tx", "block", "gas_price"].includes(method))
     throw new DomainError("RPC_METHOD", "This RPC method is not allowed.");
   const call = async (name: string, args: any) => {
@@ -222,13 +225,13 @@ export async function nearRpc(id: string, method: string, params: any) {
   }
   return call(method, params);
 }
-export async function viewAccount(id: string, account: string) {
+export async function viewAccount(id: string, account: string, read = nearRpc) {
   if (!nearAccountOK(account))
     throw new DomainError(
       "INVALID_ACCOUNT",
       "Enter a NEAR mainnet account, such as alice.near, or its 64-character implicit address.",
     );
-  return nearRpc(id, "query", {
+  return read(id, "query", {
     request_type: "view_account",
     finality: "final",
     account_id: account,
@@ -239,6 +242,7 @@ export async function viewFunction(
   contract: string,
   method: string,
   args: any = {},
+  read = nearRpc,
 ) {
   if (
     !nearAccountOK(contract) ||
@@ -251,7 +255,7 @@ export async function viewFunction(
     ].includes(method)
   )
     throw new DomainError("INVALID_VIEW", "This read method is not allowed.");
-  const result = await nearRpc(id, "query", {
+  const result = await read(id, "query", {
     request_type: "call_function",
     finality: "final",
     account_id: contract,
@@ -279,9 +283,9 @@ async function indexer(id: string, path: string) {
     "NearBlocks indexer",
   );
 }
-export async function tokenMetadata(id: string, token: string) {
+export async function tokenMetadata(id: string, token: string, read = nearRpc) {
   if (token === "near") return { symbol: "NEAR", name: "NEAR", decimals: 24 };
-  const m = await viewFunction(id, token, "ft_metadata");
+  const m = await viewFunction(id, token, "ft_metadata", {}, read);
   if (!m || !Number.isInteger(m.decimals) || m.decimals < 0 || m.decimals > 36)
     throw new DomainError(
       "INVALID_TOKEN",
@@ -331,9 +335,11 @@ export async function nearInvestigate(
       "INVALID_ACCOUNT",
       "Use a valid NEAR mainnet account or token contract.",
     );
+  const { rpc } = await portiConfig(id, "rpc");
+  const read = (_id: string, method: string, params: any) => rpcReadAt(rpc, method, params);
   const warnings: string[] = [];
   if (kind === "wallet") {
-    const a = await viewAccount(id, account);
+    const a = await viewAccount(id, account, read);
     return {
       kind,
       address: account,
@@ -358,11 +364,11 @@ export async function nearInvestigate(
     };
   }
   const [metadata, supply, contractControls] = await Promise.all([
-    tokenMetadata(id, account),
-    viewFunction(id, account, "ft_total_supply"),
+    tokenMetadata(id, account, read),
+    viewFunction(id, account, "ft_total_supply", {}, read),
     readContractControls(
-      () => viewAccount(id, account),
-      (blockHash: string) => nearRpc(id, "query", {request_type:"view_access_key_list", block_id:blockHash, account_id:account}),
+      () => viewAccount(id, account, read),
+      (blockHash: string) => read(id, "query", {request_type:"view_access_key_list", block_id:blockHash, account_id:account}),
     ),
   ]);
   if (typeof supply !== "string" || !/^\d+$/.test(supply))
@@ -370,7 +376,7 @@ export async function nearInvestigate(
       "INVALID_SUPPLY",
       "Token total supply was not a raw integer.",
     );
-  const researchWork = () => readRiskEvidence(account, metadata, contractControls, (params: any) => nearRpc(id, "query", params));
+  const researchWork = () => readRiskEvidence(account, metadata, contractControls, (params: any) => read(id, "query", params));
   let holders: any[] = [];
   let holderLookupFailed = false;
   let holderAccessHint: string | null = null;
@@ -404,8 +410,8 @@ export async function nearInvestigate(
           const [balance, detail] = await Promise.all([
             viewFunction(id, account, "ft_balance_of", {
               account_id: h.address.hash,
-            }),
-            viewAccount(id, h.address.hash),
+            }, read),
+            viewAccount(id, h.address.hash, read),
           ]);
           if (typeof balance !== "string" || !/^\d+$/.test(balance))
             throw new Error();
