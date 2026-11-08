@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readContractControls} from '../lib/contract-controls.mjs';
 import {tokenRisk,riskReportHtml} from '../lib/token-risk.mjs';
+import {readRiskEvidence} from '../lib/risk-evidence.mjs';
 import {load} from './helpers/services.mjs';
 import {DomainError} from '../lib/errors.mjs';
 import * as near from '../lib/near-core.mjs';
@@ -11,7 +12,7 @@ test('reads code and access keys at the exact same final block, with full-access
  const r=await readContractControls(async()=>account,async hash=>{assert.equal(hash,block);return response(['FullAccess',{FunctionCall:{receiver_id:'a.near',method_names:[]}}]);},()=>100);
  assert.equal(r.status,'confirmed');assert.equal(r.fullAccessKeyCount,1);assert.equal(r.functionCallKeyCount,1);assert.equal(r.codeHash,code);assert.equal(r.checkedAt,100);assert.equal(r.keyListComplete,true);
  const risk=tokenRisk({address:'token.near',holders:[],metadata:{},contractControls:r});assert.equal(risk.level,'caution');assert.ok(risk.flags.some(f=>f.id==='contract-full-access'));assert.notEqual(risk.label,'Holder screening unavailable');
- assert.ok(riskReportHtml({address:'token.near',checkedAt:100,holders:[],metadata:{},contractControls:r}).includes('Contract account checks'));
+ assert.ok(riskReportHtml({address:'token.near',checkedAt:100,holders:[],metadata:{},contractControls:r}).includes('Read-only research evidence'));
 });
 test('zero full-access keys never assert immutability or safety',async()=>{
  const r=await readContractControls(async()=>account,async()=>response([]));assert.equal(r.fullAccessKeyCount,0);assert.match(r.summary,/does not prove.*immutable/);
@@ -30,7 +31,7 @@ test('RPC errors preserve partial code evidence without claiming keys were check
 test('token investigation retains direct contract checks when the holder indexer is rate limited',async()=>{
  let pinned=false;
  const svc=load('lib/near-services.ts',{
-  ...near,DomainError,tokenRisk,readContractControls,env:{},readWorkspace:async()=>({state:{}}),createHolderLookup:()=>async()=>{throw Object.assign(Error('rate limit'),{code:'PROVIDER_RATE_LIMIT'})},
+  ...near,DomainError,tokenRisk,readContractControls,readRiskEvidence,env:{},readWorkspace:async()=>({state:{}}),createHolderLookup:()=>async()=>{throw Object.assign(Error('rate limit'),{code:'PROVIDER_RATE_LIMIT'})},
   fetch:async(_url,init)=>{const {method,params}=JSON.parse(init.body);if(method==='status')return Response.json({result:{chain_id:'mainnet'}});
    if(params.request_type==='view_account')return Response.json({result:account});
    if(params.request_type==='view_access_key_list'){assert.equal(params.block_id,block);assert.equal(params.finality,undefined);pinned=true;return Response.json({result:response(['FullAccess'])});}
@@ -39,3 +40,4 @@ test('token investigation retains direct contract checks when the holder indexer
  },['nearInvestigate']);
  const result=await svc.nearInvestigate('workspace','token','hoot-8ecf65.launchpad.justhoot.near');assert.ok(pinned);assert.equal(result.holderStatus,'unavailable');assert.equal(result.contractControls.fullAccessKeyCount,1);assert.equal(result.risk.level,'caution');assert.match(result.holderAccessHint,/No NearBlocks API key/);
 });
+
