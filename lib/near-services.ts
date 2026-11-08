@@ -17,6 +17,7 @@ import {
 import { createHolderLookup } from "./holder-lookup.mjs";
 const holderCandidates = createHolderLookup();
 import { tokenRisk } from "./token-risk.mjs";
+import { readContractControls } from "./contract-controls.mjs";
 const runtime = env as unknown as Record<string, string>;
 export function initialPorti() {
   return {
@@ -328,9 +329,13 @@ export async function nearInvestigate(
       coverage: "Final account state only; not full account history.",
     };
   }
-  const [metadata, supply] = await Promise.all([
+  const [metadata, supply, contractControls] = await Promise.all([
     tokenMetadata(id, account),
     viewFunction(id, account, "ft_total_supply"),
+    readContractControls(
+      () => viewAccount(id, account),
+      (blockHash: string) => nearRpc(id, "query", {request_type:"view_access_key_list", block_id:blockHash, account_id:account}),
+    ),
   ]);
   if (typeof supply !== "string" || !/^\d+$/.test(supply))
     throw new DomainError(
@@ -411,12 +416,13 @@ export async function nearInvestigate(
     balances: [],
     activity: [],
     contractScan: null,
+    contractControls,
     warnings: [
       ...new Set(warnings),
       "Holder candidates depend on indexer coverage; this is not a complete holder census.",
     ],
     coverage:
-      "Up to 10 indexer holder candidates, with finalized RPC balance/type reads. Transfer relationships and ownership permissions are not indexed in this release.",
+      "Up to 10 indexer holder candidates, with finalized RPC balance/type reads. Contract code-hash and account access keys are inspected at one finalized block where available. Contract roles and transfer relationships are not audited.",
   };
   snapshot.risk = tokenRisk(snapshot);
   return snapshot;
@@ -1018,6 +1024,8 @@ export async function nearTool(
         totalSupplyFormatted: `${decimal(snapshot.metadata.total_supply, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
         holderStatus: snapshot.holderStatus,
         holderCandidatesAt: snapshot.holderCandidatesAt,
+        holderAccessHint: snapshot.holderAccessHint,
+        contractControls: snapshot.contractControls,
         top10: snapshot.holders.map((holder: any) => ({
           ...holder,
           balanceFormatted: `${decimal(holder.value, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
@@ -1142,4 +1150,5 @@ async function notifyReceipt(id: string, r: any) {
     console.warn("Telegram receipt enqueue unavailable");
   }
 }
+
 
