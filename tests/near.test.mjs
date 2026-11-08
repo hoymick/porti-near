@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {webcrypto} from 'node:crypto';
-import {nearAccountOK,units,decimal,usdRaw,buildTransfer,matchesNearTransaction,parseHolders} from '../lib/near-core.mjs';
+import {nearAccountOK,units,decimal,usdRaw,buildTransfer,matchesNearTransaction,parseHolders,accountBalanceDisplay} from '../lib/near-core.mjs';
 import {username,nep413Bytes,verifyNearMessage} from '../lib/near-identity.mjs';
 import {tokenRisk} from '../lib/token-risk.mjs';import {nearDemo} from '../lib/near-demo.mjs';
 const alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -14,3 +14,16 @@ test('holder adapter refuses unknown units and incompatible envelopes',()=>{asse
 test('usernames normalize, reserve platform names and reject confusable punctuation',()=>{assert.equal(username('@Michael_1'),'michael_1');for(const s of ['admin','near','porti','ab','michael.near','a-b','mícháel'])assert.throws(()=>username(s));});
 test('NEP-413 domain/nonce/message checks reject tampering and account mismatch',async()=>{const keys=await webcrypto.subtle.generateKey('Ed25519',true,['sign','verify']),pub=new Uint8Array(await webcrypto.subtle.exportKey('raw',keys.publicKey)),nonce=new Uint8Array(32).fill(42);const c={account:'alice.near',message:'Link @alice to alice.near on Porti',recipient:'porti.example',nonce:Buffer.from(nonce).toString('base64')};const bytes=nep413Bytes(c.message,c.recipient,nonce);assert.equal(new DataView(bytes.buffer).getUint32(0,true),2147484061);assert.equal(bytes.at(-1),0);const hash=await webcrypto.subtle.digest('SHA-256',bytes),signature=Buffer.from(await webcrypto.subtle.sign('Ed25519',keys.privateKey,hash)).toString('base64'),proof={accountId:c.account,publicKey:'ed25519:'+encode58(pub),signature};assert(await verifyNearMessage(c,proof,webcrypto));assert(!await verifyNearMessage({...c,recipient:'attacker.example'},proof,webcrypto));assert(!await verifyNearMessage({...c,message:'Link another wallet'},proof,webcrypto));assert(!await verifyNearMessage({...c,nonce:Buffer.from(new Uint8Array(32)).toString('base64')},proof,webcrypto));assert(!await verifyNearMessage(c,{...proof,accountId:'bob.near'},webcrypto));});
 test('NEAR holder risk graph accepts account IDs and retains explicit sample provenance',()=>{const s=nearDemo().snapshot,r=tokenRisk(s);assert.equal(r.graph.nodes.length,10);assert.equal(r.graph.edges.length,4);assert.equal(r.level,'high');assert.equal(r.probability,null);assert.equal(s.source,'Fictional NEAR walkthrough');});
+
+test('account tool display converts yoctoNEAR exactly and labels its raw unit', () => {
+  assert.deepEqual(accountBalanceDisplay('6067227410000000000000000', '0'), {
+    balanceFormatted: '6.06722741 NEAR',
+    lockedFormatted: '0 NEAR',
+    rawUnit: 'yoctoNEAR',
+    decimals: 24,
+  });
+  assert.equal(accountBalanceDisplay('1', '1000000000000000000000000').balanceFormatted, '0.000000000000000000000001 NEAR');
+  assert.equal(accountBalanceDisplay('0', '1000000000000000000000000').lockedFormatted, '1 NEAR');
+  assert.throws(() => accountBalanceDisplay(6067227, '0'));
+  assert.throws(() => accountBalanceDisplay('1e24', '0'));
+});

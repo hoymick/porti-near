@@ -5,6 +5,7 @@ import { mutate, readWorkspace } from "./workspace";
 import {
   nearAccountOK,
   parseHolders,
+  accountBalanceDisplay,
   decimal,
   usdRaw,
   units,
@@ -996,7 +997,12 @@ export async function nearTool(
         metadata: snapshot.metadata,
         totalSupplyFormatted: `${decimal(snapshot.metadata.total_supply, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
         holderStatus: snapshot.holderStatus,
-        top10: snapshot.holders,
+        top10: snapshot.holders.map((holder: any) => ({
+          ...holder,
+          balanceFormatted: `${decimal(holder.value, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
+          rawUnit: "token base units",
+          decimals: snapshot.metadata.decimals,
+        })),
         risk: {
           level: snapshot.risk.level,
           flags: snapshot.risk.flags,
@@ -1011,7 +1017,25 @@ export async function nearTool(
   if (name === "inspect_account") {
     const snapshot = await nearInvestigate(id, "wallet", args.account);
     await saveObservation(id, snapshot);
-    return { card: { type: "account", snapshot }, output: snapshot };
+    return {
+      card: { type: "account", snapshot },
+      output: {
+        account: snapshot.address,
+        network: snapshot.network,
+        checkedAt: snapshot.checkedAt,
+        source: snapshot.source,
+        ...accountBalanceDisplay(snapshot.metadata.coin_balance, snapshot.metadata.locked),
+        isContract: snapshot.metadata.is_contract,
+        storageUsageBytes: snapshot.metadata.storage_usage,
+        rawEvidence: {
+          amount: snapshot.metadata.coin_balance,
+          locked: snapshot.metadata.locked,
+          unit: "yoctoNEAR",
+        },
+        coverage: snapshot.coverage,
+        warnings: snapshot.warnings,
+      },
+    };
   }
   if (name === "watch_account") {
     return {
