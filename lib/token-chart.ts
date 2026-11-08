@@ -105,6 +105,8 @@ async function fetchChart(contract: string, frame = "1h") {
     );
   const data = {
     contract,
+    quoteCurrency: "USD",
+    priceUnit: "USD per token",
     frame,
     seconds,
     pool: pool.id.slice(5),
