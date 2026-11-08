@@ -88,3 +88,51 @@ html[data-porti-theme=dark] .near-app .porti-swap .swap-asset-panel { background
   gap: 12px;
 }
 .porti-swap-inline .swap-wallet { padding: 12px; }
+
+/* Keep phone controls usable without zooming the form or shrinking the composer. */
+@media (max-width: 650px) {
+  .porti-chat {
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  .porti-chat > header,
+  .porti-chat-notice,
+  .porti-chat-compose,
+  .porti-chat > footer { flex-shrink: 0; }
+  .porti-messages { min-height: 0; }
+  .porti-chat > header { gap: 8px; padding: 12px; }
+  .porti-chat > header > div:nth-child(2) { flex: 1; min-width: 0; }
+  .porti-chat > header > div > span { display: block; overflow-wrap: anywhere; }
+  .porti-chat > header > button,
+  .porti-context > button,
+  .porti-chat-compose > button,
+  .porti-chat-compose .porti-image-upload-compact label {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .porti-chat > header > button { flex-shrink: 0; }
+  .porti-chat .porti-chat-compose textarea,
+  .scout-app.near-app main input:not([type=checkbox]):not([type=radio]),
+  .scout-app.near-app main select,
+  .scout-app.near-app main textarea,
+  .scout-app.near-app .porti-swap input:not([type=checkbox]),
+  .scout-app.near-app .porti-swap select {
+    font-size: 16px;
+  }
+  .porti-embedded-content button,
+  .porti-embedded-content .sc-check,
+  .near-app .sc-mode button,
+  .near-app .topbar > button,
+  .near-app .sidebar button {
+    min-height: 44px;
+  }
+  .porti-local-wallet .sc-check { padding-block: 10px; }
+  .porti-wallet-stages .sc-buttons,
+  .porti-local-approval .sc-buttons {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
