@@ -19,6 +19,7 @@ import { createHolderLookup } from "./holder-lookup.mjs";
 const holderCandidates = createHolderLookup();
 import { tokenRisk } from "./token-risk.mjs";
 import { readContractControls } from "./contract-controls.mjs";
+import { readRiskEvidence } from "./risk-evidence.mjs";
 const runtime = env as unknown as Record<string, string>;
 export function initialPorti() {
   return {
@@ -343,6 +344,7 @@ export async function nearInvestigate(
       "INVALID_SUPPLY",
       "Token total supply was not a raw integer.",
     );
+  const researchWork = readRiskEvidence(account, metadata, contractControls, (params: any) => nearRpc(id, "query", params));
   let holders: any[] = [];
   let holderLookupFailed = false;
   let holderAccessHint: string | null = null;
@@ -418,6 +420,7 @@ export async function nearInvestigate(
     activity: [],
     contractScan: null,
     contractControls,
+    researchChecks: await researchWork,
     warnings: [
       ...new Set(warnings),
       "Holder candidates depend on indexer coverage; this is not a complete holder census.",
@@ -1027,6 +1030,7 @@ export async function nearTool(
         holderCandidatesAt: snapshot.holderCandidatesAt,
         holderAccessHint: snapshot.holderAccessHint,
         contractControls: snapshot.contractControls,
+        researchChecks: snapshot.researchChecks,
         top10: snapshot.holders.map((holder: any) => ({
           ...holder,
           balanceFormatted: `${decimal(holder.value, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
@@ -1036,6 +1040,7 @@ export async function nearTool(
         risk: {
           level: snapshot.risk.level,
           flags: snapshot.risk.flags,
+          observations: snapshot.risk.observations,
           unknowns: snapshot.risk.unknowns,
         },
         warnings: snapshot.warnings,
@@ -1151,6 +1156,7 @@ async function notifyReceipt(id: string, r: any) {
     console.warn("Telegram receipt enqueue unavailable");
   }
 }
+
 
 
 
