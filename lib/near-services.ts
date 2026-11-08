@@ -339,6 +339,7 @@ export async function nearInvestigate(
     );
   let holders: any[] = [];
   let holderLookupFailed = false;
+  let holderAccessHint: string | null = null;
   let holderCandidatesAt: number | null = null;
   try {
     const candidates = await holderCandidates(id, account, () =>
@@ -348,6 +349,11 @@ export async function nearInvestigate(
     holderCandidatesAt = candidates.fetchedAt;
   } catch (e: any) {
     holderLookupFailed = true;
+    const { indexKey } = await portiConfig(id, "index");
+    holderAccessHint = indexKey
+      ? "Check the connected NearBlocks API key and its quota in Connections. Repeated retries cannot bypass provider limits."
+      : "No NearBlocks API key is connected. Add a key in Connections for holder lookups; the shared public endpoint may remain blocked or rate-limited.";
+    warnings.push(holderAccessHint);
     warnings.push(
       e instanceof DomainError
         ? e.message
@@ -399,6 +405,7 @@ export async function nearInvestigate(
     metadata: { ...metadata, total_supply: supply, contract: null },
     holderStatus,
     holderCandidatesAt,
+    holderAccessHint,
     holders,
     transfers: [],
     balances: [],
@@ -1135,3 +1142,4 @@ async function notifyReceipt(id: string, r: any) {
     console.warn("Telegram receipt enqueue unavailable");
   }
 }
+
