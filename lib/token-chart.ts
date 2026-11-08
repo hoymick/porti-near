@@ -70,6 +70,7 @@ async function fetchChart(contract: string, frame = "1h") {
       "Market pool data was not recognized.",
       503,
     );
+  const poolFetchedAt = Date.now();
   const pool = pools.data
     .filter(
       (p: any) =>
@@ -106,6 +107,11 @@ async function fetchChart(contract: string, frame = "1h") {
   const data = {
     contract,
     quoteCurrency: "USD",
+    tokenSide: side,
+    poolFetchedAt,
+    latestCandleAt: rows.at(-1)[0] * 1000,
+    latestCompletedCandleAt: completed.length ? completed.at(-1)[0] * 1000 : null,
+    changeCoverage: "Percentage change is first-to-last completed candle close in the returned sample, not necessarily one timeframe or 24 hours. Range timestamps identify candle opening times.",
     priceUnit: "USD per token",
     frame,
     seconds,
