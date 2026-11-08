@@ -19,7 +19,7 @@ export async function swapState(id:string){return {orders:(await readWorkspace(i
 export async function swapAction(id:string,input:any){
  if(input.action==='preview'||input.action==='register'){
   await walletOwner(id,input.sender);const tokens=await swapTokens(),origin=tokens.find(t=>t.contract==='wrap.near'),destination=tokens.find(t=>t.assetId===input.destination);if(!origin||!destination||destination.contract==='wrap.near')throw new DomainError('SWAP_TOKEN','Choose a supported destination token from the live catalog.');
-  const recipient=destination.blockchain==='near'?input.sender:input.recipient;if(!swapRecipientOK(destination.blockchain,recipient))throw new DomainError('SWAP_RECIPIENT','Enter a valid destination address for the selected network.');if(destination.blockchain!=='near'&&input.recipientConfirmation!==recipient)throw new DomainError('SWAP_RECIPIENT','Re-enter the same destination address to confirm it.');
+  const recipient=destination.blockchain==='near'?input.sender:input.recipient;if(!swapRecipientOK(destination.blockchain,recipient))throw new DomainError('SWAP_RECIPIENT','Enter a valid destination address for the selected network.');
   if(destination.blockchain==='near'){
   const metadata=await viewFunction(id,destination.contract,'ft_metadata');if(metadata.decimals!==destination.decimals)throw new DomainError('SWAP_DECIMALS','Output token decimals do not match the catalog.');
   const registered=await viewFunction(id,destination.contract,'storage_balance_of',{account_id:input.sender});
