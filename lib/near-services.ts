@@ -225,6 +225,24 @@ async function rpcReadAt(rpc: string, method: string, params: any) {
   }
   return call(method, params);
 }
+export function createInvestigationReader(rpc: string) {
+  const fallback = "https://free.rpc.fastnear.com";
+  const eligible = rpc === "https://rpc.mainnet.near.org" || rpc === "https://rpc.mainnet.near.org/";
+  let usingFallback = false;
+  const read = async (_id: string, method: string, params: any) => {
+    if (usingFallback) return rpcReadAt(fallback, method, params);
+    try { return await rpcReadAt(rpc, method, params); }
+    catch (error: any) {
+      if (!eligible || !["PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_ERROR", "RPC_READ_FAILED"].includes(error?.code)) throw error;
+      // rpcReadAt validates the fallback's mainnet chain ID before a query.
+      // Only default public reads use failover; configured private URLs stay private.
+      const result = await rpcReadAt(fallback, method, params);
+      usingFallback = true;
+      return result;
+    }
+  };
+  return {read, usedFallback: () => usingFallback};
+}
 export async function viewAccount(id: string, account: string, read = nearRpc) {
   if (!nearAccountOK(account))
     throw new DomainError(
@@ -336,7 +354,8 @@ export async function nearInvestigate(
       "Use a valid NEAR mainnet account or token contract.",
     );
   const { rpc } = await portiConfig(id, "rpc");
-  const read = (_id: string, method: string, params: any) => rpcReadAt(rpc, method, params);
+  const rpcReader = createInvestigationReader(rpc);
+  const read = rpcReader.read;
   const warnings: string[] = [];
   if (kind === "wallet") {
     const a = await viewAccount(id, account, read);
@@ -453,8 +472,10 @@ export async function nearInvestigate(
     contractScan: null,
     contractControls,
     researchChecks: await researchWork(),
+    rpcFallbackUsed: rpcReader.usedFallback(),
     warnings: [
       ...new Set(warnings),
+      ...(rpcReader.usedFallback() ? ["Some official public RPC reads failed; validated FastNEAR mainnet RPC was used for this observation."] : []),
       "Holder candidates depend on indexer coverage; this is not a complete holder census.",
     ],
     coverage:
@@ -1078,6 +1099,7 @@ export async function nearTool(
         warnings: snapshot.warnings,
         source: snapshot.source,
         checkedAt: snapshot.checkedAt,
+        checkedAtISO: new Date(snapshot.checkedAt).toISOString(),
       },
     };
   }
@@ -1090,6 +1112,7 @@ export async function nearTool(
         account: snapshot.address,
         network: snapshot.network,
         checkedAt: snapshot.checkedAt,
+        checkedAtISO: new Date(snapshot.checkedAt).toISOString(),
         source: snapshot.source,
         ...accountBalanceDisplay(snapshot.metadata.coin_balance, snapshot.metadata.locked),
         isContract: snapshot.metadata.is_contract,
