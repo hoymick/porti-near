@@ -4,7 +4,6 @@ import { DomainError } from "./errors.mjs";
 import { mutate, readWorkspace } from "./workspace";
 import {
   nearAccountOK,
-  parseHolders,
   accountBalanceDisplay,
   decimal,
   usdRaw,
@@ -15,6 +14,8 @@ import {
   finalTransferEvidence,
   gasReserve,
 } from "./near-core.mjs";
+import { createHolderLookup } from "./holder-lookup.mjs";
+const holderCandidates = createHolderLookup();
 import { tokenRisk } from "./token-risk.mjs";
 const runtime = env as unknown as Record<string, string>;
 export function initialPorti() {
@@ -131,6 +132,12 @@ async function fetchJSON(
       redirect: "manual",
       signal: AbortSignal.timeout(label === "NEAR AI Cloud" ? 40000 : 12000),
     });
+    if (r.status === 429)
+      throw new DomainError(
+        "PROVIDER_RATE_LIMIT",
+        `${label} is rate-limiting requests. Try again after one minute.`,
+        503,
+      );
     if (!r.ok)
       throw new DomainError(
         "PROVIDER_ERROR",
@@ -332,16 +339,21 @@ export async function nearInvestigate(
     );
   let holders: any[] = [];
   let holderLookupFailed = false;
+  let holderCandidatesAt: number | null = null;
   try {
-    holders = parseHolders(
-      await indexer(id, `/fts/${account}/holders?limit=30`),
+    const candidates = await holderCandidates(id, account, () =>
+      indexer(id, `/fts/${account}/holders?limit=30`),
     );
+    holders = candidates.holders;
+    holderCandidatesAt = candidates.fetchedAt;
   } catch (e: any) {
     holderLookupFailed = true;
     warnings.push(
       e instanceof DomainError
         ? e.message
-        : "The holder response was not recognized.",
+        : e?.code === "PROVIDER_RATE_LIMIT"
+          ? "NearBlocks holder lookups are cooling down after a rate limit. Try again after one minute."
+          : "The holder response was not recognized.",
     );
   }
   // Re-read top-ten balances from finalized NEAR RPC instead of trusting an indexer amount unit.
@@ -386,6 +398,7 @@ export async function nearInvestigate(
     source: "NEAR final RPC + NearBlocks holder candidates",
     metadata: { ...metadata, total_supply: supply, contract: null },
     holderStatus,
+    holderCandidatesAt,
     holders,
     transfers: [],
     balances: [],
@@ -997,6 +1010,7 @@ export async function nearTool(
         metadata: snapshot.metadata,
         totalSupplyFormatted: `${decimal(snapshot.metadata.total_supply, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
         holderStatus: snapshot.holderStatus,
+        holderCandidatesAt: snapshot.holderCandidatesAt,
         top10: snapshot.holders.map((holder: any) => ({
           ...holder,
           balanceFormatted: `${decimal(holder.value, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
