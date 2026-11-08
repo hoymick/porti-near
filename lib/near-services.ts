@@ -4,6 +4,7 @@ import { DomainError } from "./errors.mjs";
 import { mutate, readWorkspace } from "./workspace";
 import {
   nearAccountOK,
+  accountCode,
   accountBalanceDisplay,
   decimal,
   usdRaw,
@@ -317,7 +318,7 @@ export async function nearInvestigate(
         coin_balance: a.amount,
         locked: a.locked,
         storage_usage: a.storage_usage,
-        is_contract: a.code_hash !== "11111111111111111111111111111111",
+        is_contract: accountCode(a).isContract,
       },
       holders: [],
       transfers: [],
@@ -382,7 +383,7 @@ export async function nearInvestigate(
             throw new Error();
           h.value = balance;
           h.address.is_contract =
-            detail.code_hash !== "11111111111111111111111111111111";
+            accountCode(detail).isContract;
         } catch {
           warnings.push(
             "Some holder balances or contract types could not be confirmed at finality.",
@@ -1150,5 +1151,6 @@ async function notifyReceipt(id: string, r: any) {
     console.warn("Telegram receipt enqueue unavailable");
   }
 }
+
 
 
