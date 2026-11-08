@@ -1,6 +1,89 @@
 'use client';
-import React,{useState} from 'react';
-export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;onConnect:(role:string)=>void;onUnlink:(role:string)=>void;onFund:()=>void;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}){
- const [copied,setCopied]=useState(false);
- return <><section className="sc-panel porti-wallet-intro"><span className="sc-eyebrow">YOUR INTERNAL AGENT WALLET</span><h2>A wallet that lives in Porti.</h2><p>Create or unlock your agent wallet inside Porti with a free password-encrypted device wallet. Then verify ownership, deposit NEAR and approve outgoing actions yourself.</p><div className="sc-buttons"><button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create or unlock internal wallet</button></div><p className="sc-fine">No wallet-provider subscription. Save your encrypted backup and password. The address is generated locally; activation and transactions have NEAR network costs. Opening this panel does not move funds.</p>{walletError&&<p className="apps-notice" role="alert">{walletError}</p>}<details><summary>Prefer your existing wallet?</summary><p>Use the connection buttons below. If you need another account, create one with your wallet provider first, then return and verify that exact account.</p><a href="https://wallet.meteorwallet.app/" target="_blank" rel="noopener noreferrer">Open Meteor wallet provider ↗</a><p className="sc-fine">Meteor may first ask you to unlock an existing wallet. Complete its account creation and recovery there; this external link does not create Porti’s internal wallet.</p></details></section><div className="sc-two-col">{['main','agent'].map(role=><section className="sc-panel porti-wallet-card" key={role}><span className="sc-eyebrow">{role==='main'?'01 · MAIN WALLET':'02 · AGENT WALLET'}</span><h2>{role==='main'?'Your everyday account.':'A separate working balance.'}</h2><p>{role==='main'?'Connect your own NEAR wallet to transfer directly from it.':'Create inside Porti or connect a separate existing NEAR account. It must differ from your main wallet.'}</p><div className="near-profile-wallet"><strong>{roles?.[role]?.account||'No verified wallet linked'}</strong><p>{roles?.[role]?.verifiedAt?`Ownership verified ${new Date(roles[role].verifiedAt).toLocaleDateString()}`:'Ownership must be verified before Porti marks it linked.'}</p></div><div className="sc-buttons">{role==='agent'&&<button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create / unlock inside Porti</button>}<button className={role==='main'?'primary':'secondary'} disabled={busy||sample} onClick={()=>onConnect(role)}>Connect existing {role} wallet</button>{roles?.[role]&&<button className="secondary" disabled={busy||sample} onClick={()=>onUnlink(role)}>Unlink role</button>}</div>{roles?.[role]&&<p className="sc-fine">{account===roles[role].account?'Connected now · selected transfer source':'Saved address · reconnect or unlock this account to sign'}</p>}{role==='agent'&&roles?.agent&&<><h3>Deposit to agent wallet</h3><p>Send native NEAR on NEAR mainnet to this exact verified account:</p><code className="porti-account-code">{roles.agent.account}</code><div className="sc-buttons"><button className="secondary" onClick={async()=>{try{await navigator.clipboard.writeText(roles.agent.account);setCopied(true)}catch{setCopied(false)}}}>{copied?'Address copied':'Copy deposit address'}</button><button className="primary" disabled={sample||busy||!roles.main} onClick={onFund}>Fund from main wallet</button></div><p className="sc-fine">Token deposits may need storage registration. This is a NEAR address. Copying it does not move funds.</p></>}</section>)}</div><section className="sc-panel porti-wallet-card"><h2>Choose where funds come from.</h2><p>Current source: <strong>{account||'None'}</strong>. Connect your main account or unlock your internal wallet, then prepare a transfer.</p><button className="primary" disabled={sample||busy||!account} onClick={onTransfer}>Open Transfers</button><p className="sc-fine">Saved address links survive a reload. Signing sessions must be unlocked again. Porti’s AI has no wallet-signing tool.</p></section></>
+import React, {useState} from 'react';
+
+export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;onConnect:(role:string)=>void;onUnlink:(role:string)=>void;onFund:()=>void;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}) {
+  const [copiedAddress,setCopiedAddress] = useState('');
+  const [copyError,setCopyError] = useState('');
+
+  async function copyAddress(address:string) {
+    setCopyError('');
+    setCopiedAddress('');
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedAddress(address);
+    } catch {
+      setCopyError('Copy was unavailable. Select and copy the address shown below.');
+    }
+  }
+
+  return <>
+    <section className="sc-panel porti-wallet-intro">
+      <span className="sc-eyebrow">YOUR WALLETS</span>
+      <h2>Your funds, ready for your next move.</h2>
+      <p>Create a device wallet in Porti, or connect a wallet you already use. Choose an account below to receive NEAR or prepare a transfer.</p>
+      <div className="wallet-overview" aria-label="Selected wallet">
+        <span className="wallet-network">NEAR mainnet</span>
+        <span>{account ? 'Selected for signing' : 'Connect or unlock to get started'}</span>
+        <code>{account || 'No wallet selected'}</code>
+      </div>
+      <div className="sc-buttons">
+        <button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create or unlock device wallet</button>
+        <button className="secondary" disabled={busy||sample} onClick={()=>onConnect('main')}>Connect existing wallet</button>
+      </div>
+      <p className="sc-fine">Save your encrypted backup and password. Creating a device address is free; account activation and transactions have NEAR network costs.</p>
+      {walletError&&<p className="apps-notice" role="alert">{walletError}</p>}
+      <details><summary>Need an external wallet?</summary>
+        <p>Create or recover an account with your provider, then connect it here.</p>
+        <a href="https://wallet.meteorwallet.app/" target="_blank" rel="noopener noreferrer">Open Meteor wallet ↗</a>
+      </details>
+    </section>
+    <div className="sc-two-col wallet-account-grid">
+      {['main','agent'].map(role=>{
+        const linked = roles?.[role];
+        const selected = !!linked && account === linked.account;
+        return <section className="sc-panel porti-wallet-card" key={role}>
+          <div className="wallet-card-heading">
+            <span className="sc-eyebrow">{role==='main'?'01 · MAIN WALLET':'02 · AGENT WALLET'}</span>
+            <span className="wallet-state">{selected?'Selected':linked?'Linked':'Set up'}</span>
+          </div>
+          <h2>{role==='main'?'Your everyday wallet.':'Your Porti working wallet.'}</h2>
+          <p>{role==='main'?'Use an existing NEAR account as your main source of funds.':'Keep a separate balance for the actions you review with Porti. This account must differ from your main wallet.'}</p>
+          <div className="near-profile-wallet">
+            <strong>{linked?.account||'No verified wallet linked'}</strong>
+            <p>{linked?.verifiedAt ? 'Ownership verified '+new Date(linked.verifiedAt).toLocaleDateString() : 'Connect and verify ownership to link this account.'}</p>
+          </div>
+          <div className="sc-buttons">
+            {role==='agent'&&<button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create / unlock inside Porti</button>}
+            <button className={role==='main'?'primary':'secondary'} disabled={busy||sample} onClick={()=>onConnect(role)}>Connect {role} wallet</button>
+          </div>
+          {linked&&<>
+            <p className="sc-fine">{selected?'Ready for your wallet approvals.':'Reconnect or unlock this account when you want to sign.'}</p>
+            <section className="wallet-deposit" aria-label={'Receive NEAR in '+role+' wallet'}>
+              <div className="wallet-card-heading"><h3>Receive NEAR</h3><span className="wallet-network">NEAR mainnet</span></div>
+              <p>Send native NEAR from your wallet or exchange to this address.</p>
+              <label className="wallet-address-label">{role==='main'?'Main wallet deposit address':'Agent wallet deposit address'}
+                <code className="porti-account-code">{linked.account}</code>
+              </label>
+              <button className="secondary" disabled={sample} onClick={()=>copyAddress(linked.account)}>{copiedAddress===linked.account?'Address copied':'Copy '+role+' deposit address'}</button>
+              {copiedAddress===linked.account&&<p className="sc-fine" role="status">Deposit address copied.</p>}
+              <div className="wallet-deposit-note"><strong>Before you send</strong><p>Select NEAR mainnet at the sending wallet or exchange. Check this address against the withdrawal details. The sender shows its withdrawal fee.</p></div>
+              {role==='agent'&&<>
+                <button className="primary" disabled={sample||busy||!roles.main} onClick={onFund}>Fund from main wallet</button>
+                <p className="sc-fine">{roles.main?'Select your verified main wallet to prepare the funding transfer.':'Link your main wallet to fund this account from inside Porti.'}</p>
+              </>}
+              <p className="sc-fine">For other tokens, confirm token support and storage registration first.</p>
+            </section>
+            <button className="secondary wallet-unlink" disabled={busy||sample} onClick={()=>onUnlink(role)}>Unlink {role} wallet</button>
+          </>}
+        </section>;
+      })}
+    </div>
+    {copyError&&<p className="apps-notice" role="alert">{copyError}</p>}
+    <section className="sc-panel porti-wallet-card">
+      <span className="sc-eyebrow">SEND FUNDS</span><h2>Prepare a transfer.</h2>
+      <p>Choose the recipient and amount, review the details, then approve in your selected wallet.</p>
+      <p>Selected wallet: <strong>{account||'Connect or unlock a wallet first'}</strong></p>
+      <button className="primary" disabled={sample||busy||!account} onClick={onTransfer}>Open Transfers</button>
+    </section>
+  </>;
 }
