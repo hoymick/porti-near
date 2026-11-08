@@ -123,6 +123,26 @@ export async function portiConfig(id: string, scope: string = "all") {
       : "",
   };
 }
+export function createRpcReadQueue(maxActive = 4, maxQueued = 64) {
+  let active = 0;
+  const waiting: Array<() => void> = [];
+  return function queued<T>(work: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const run = () => {
+        active++;
+        Promise.resolve().then(work).then(resolve, reject).finally(() => {
+          active--;
+          waiting.shift()?.();
+        });
+      };
+      if (active < maxActive) run();
+      else if (waiting.length < maxQueued) waiting.push(run);
+      else reject(new DomainError("RPC_BUSY", "NEAR reads are busy. Try again shortly.", 503));
+    });
+  };
+}
+const rpcReadQueue = createRpcReadQueue();
+const rpcVerifications = new Map<string, Promise<void>>();
 const rpcChecks = new Map<string, number>();
 async function fetchJSON(
   url: string,
@@ -162,7 +182,7 @@ export async function nearRpc(id: string, method: string, params: any) {
   if (!["status", "query", "tx", "block", "gas_price"].includes(method))
     throw new DomainError("RPC_METHOD", "This RPC method is not allowed.");
   const call = async (name: string, args: any) => {
-    const d = await fetchJSON(
+    const d = await rpcReadQueue(() => fetchJSON(
       rpc,
       {
         method: "POST",
@@ -175,7 +195,7 @@ export async function nearRpc(id: string, method: string, params: any) {
         }),
       },
       "NEAR RPC",
-    );
+    ));
     if (d.error || !d.result)
       throw new DomainError(
         "RPC_READ_FAILED",
@@ -185,14 +205,20 @@ export async function nearRpc(id: string, method: string, params: any) {
     return d.result;
   };
   if (method !== "status" && Date.now() - (rpcChecks.get(rpc) || 0) > 60000) {
-    const status = await call("status", []);
-    if (status.chain_id !== "mainnet")
-      throw new DomainError(
-        "WRONG_NETWORK",
-        "This endpoint is not NEAR mainnet.",
-      );
-    if (rpcChecks.size >= 32) rpcChecks.delete(rpcChecks.keys().next().value!);
-    rpcChecks.set(rpc, Date.now());
+    if (!rpcVerifications.has(rpc)) {
+      const check = (async () => {
+        const status = await call("status", []);
+        if (status.chain_id !== "mainnet")
+          throw new DomainError(
+            "WRONG_NETWORK",
+            "This endpoint is not NEAR mainnet.",
+          );
+        if (rpcChecks.size >= 32) rpcChecks.delete(rpcChecks.keys().next().value!);
+        rpcChecks.set(rpc, Date.now());
+      })().finally(() => rpcVerifications.delete(rpc));
+      rpcVerifications.set(rpc, check);
+    }
+    await rpcVerifications.get(rpc);
   }
   return call(method, params);
 }
@@ -344,7 +370,7 @@ export async function nearInvestigate(
       "INVALID_SUPPLY",
       "Token total supply was not a raw integer.",
     );
-  const researchWork = readRiskEvidence(account, metadata, contractControls, (params: any) => nearRpc(id, "query", params));
+  const researchWork = () => readRiskEvidence(account, metadata, contractControls, (params: any) => nearRpc(id, "query", params));
   let holders: any[] = [];
   let holderLookupFailed = false;
   let holderAccessHint: string | null = null;
@@ -420,7 +446,7 @@ export async function nearInvestigate(
     activity: [],
     contractScan: null,
     contractControls,
-    researchChecks: await researchWork,
+    researchChecks: await researchWork(),
     warnings: [
       ...new Set(warnings),
       "Holder candidates depend on indexer coverage; this is not a complete holder census.",
