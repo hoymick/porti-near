@@ -7,6 +7,7 @@ This file prepares the entry; it does not publish anything or submit the form.
 - Confirm the latest official rules, including https://nearhackathon.com/HACKATHON.md. The linked Markdown could not be retrieved during the browser review; the official website and X article were read.
 - Verify which commits were written after the announcement; record the new NEAR integrations separately from any pre-existing foundation. The official site says code written since the announcement counts. Do not claim ineligible earlier work as new.
 - Complete the owner activation checklist and a repeatable demo from HACKATHON.md. Fix failures or label unsupported functionality before describing it as working.
+- Merge the integration branch `cloudflare-standalone` into `main` (the default branch judges will open) once CI is green on it. `main` currently lags by about 50 commits.
 - Review repository history and assets for secrets, private data and licensing. Get owner authorization to make `https://github.com/hoymick/porti-near` public; it remains private now.
 - Record a short demo with the real UI, masked personal data, visible action review and real evidence for any claimed settlement. Never show API keys, recovery phrases or payment credentials.
 - Publish a public X post saying the project was built for NEAR HACKATHON, tagging @NEARProtocol and #NEARHackathon, with video/screenshots.
