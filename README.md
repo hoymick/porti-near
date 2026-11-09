@@ -9,7 +9,7 @@ Porti turns everyday instructions into inspectable NEAR workflows: research a to
 | Area | Behavior and boundary |
 | --- | --- |
 | Ask Porti | NEAR AI Cloud tool chat; typed purchase requests open a payment-method card; workflow cards open Swap, Stake, Buy, Transfers or Markets. Pictures use a separate NEAR AI Cloud vision request. |
-| Research | Token metadata, live provider charts, sampled top traders and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
+| Research | Token metadata, live provider charts and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
 | Markets | NEAR pool-volume rankings, reported positive 24h gainers, and curated Black Dragon / SHITZU coverage. One returned pool per token; not a complete market-cap ranking or memecoin census. |
 | Wallets / payments | Free browser-local implicit wallets with encrypted backup/restore, optional setup-gated Seams passkey wallets, external wallet connections, NEP-413 wallet-control proofs, username-linked NEAR recipients and explicit wallet-approved transfers. Local wallet keys are generated on the user’s device and stored encrypted in that browser; the server and AI never receive them. |
 | Swap | Native NEAR source; NEAR-mainnet output or supported Ethereum, Base, Arbitrum and BNB Chain output from the live 1Click catalog. Confirmed recipient, NEAR refund address, quote review and separate wallet approval. |
@@ -51,7 +51,7 @@ Keep secrets in the host's runtime environment or the existing encrypted provide
 - `lib/near-services.ts`, `lib/staking.ts`: transfer/staking reviews and strict NEAR receipt evidence.
 - `lib/funding.ts`, `lib/x-connect.ts`: signed provider checkout and owner-bound OAuth PKCE.
 - `lib/media.ts`, `lib/friends.ts`: private image access and current friendship authorization.
-- `lib/markets.ts`, `lib/token-chart.ts`, `lib/token-traders.ts`: labeled provider snapshots.
+- `lib/markets.ts` and `lib/token-chart.ts`: labeled provider snapshots.
 - `lib/telegram.ts`, `lib/workspace.ts`, `drizzle/`: observations, durable state, identity and quotas.
 
 Porti uses NEAR-inspired mint, black and white with original anime artwork and Fredoka/Nunito typography. Font licenses are in `public/fonts`. Porti is independent; integrations do not imply official partnerships.
