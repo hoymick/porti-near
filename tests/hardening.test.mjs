@@ -472,6 +472,7 @@ function transfers({
       mutate: (id, fn) => mutateWorkspace(adapter, id, fn),
       readWorkspace: (id) => readStore(adapter, id),
       tokenRisk: () => ({}),
+      createHolderLookup: () => async () => ({ holders: [], fetchedAt: 0 }),
       fetch: async (url, init) => {
         const q = JSON.parse(init.body);
         calls.push(q.method);
