@@ -29,7 +29,6 @@ No transaction is authorized by this document. Perform each step personally in t
 | --- | --- | --- |
 | Funding/balance | Funding panel reads the existing vault address; refresh uses mainnet finalized account/key checks and raw balance | Real browser copy, balance refresh and first deposit |
 | Research/charts | Provider-backed metadata/charts; holder candidates require finalized balance checks | Live provider coverage and known-token comparison |
-| Top traders | Up to 20 wallets ranked from returned recent swaps in one selected pool; not profit or complete market activity | Real provider response and explorer comparison |
 | Risk | Partial concentration screening; missing permissions, sellability and liquidity checks stay unknown; probability is null | Independent provider evidence; no safety guarantee |
 | Staking | Fixed Meta Pool call, reviewed amount, final matching receipts and mint event required | Owner-approved funded stake and verified mint; cancellation recovery |
 | Swaps | Bound catalog/quote/recipient/refund, one funding request, provider-reported settlement | Funded acceptance and independent destination evidence |

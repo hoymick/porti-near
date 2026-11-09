@@ -43,7 +43,6 @@ import Markets from "./markets";
 import BuyNear from "./buy-near";
 import XConnect from "./x-connect";
 import "./media.css";
-import TopTraders from "./top-traders";
 import PortiNavigation from "./porti-navigation";
 import "./porti-navigation.css";
 import "./porti-apps.css";
@@ -884,21 +883,6 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                           <ArrowRight size={14} />
                         </span>
                       </button>
-                      <button
-                        onClick={() => {
-                          go("Investigate token");
-                          setAccount("wrap.near");
-                        }}
-                      >
-                        <UsersIcon />
-                        <strong>
-                          Show me this token’s sampled top traders
-                        </strong>
-                        <span>
-                          Contract → covered pool → recent trader activity
-                          <ArrowRight size={14} />
-                        </span>
-                      </button>
                       <button onClick={() => go("Rug Guard")}>
                         <ShieldCheck size={20} />
                         <strong>Show me the token’s warning signs</strong>
@@ -1639,7 +1623,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                     </section>
                   )}
                   {view === "Investigate token" && contextToken && !report && (
-                    <><TokenChart contract={contextToken} sample={sample} /><section className="sc-panel"><TopTraders contract={contextToken} sample={sample}/></section></>
+                    <TokenChart contract={contextToken} sample={sample} />
                   )}
                   {view === "Porti Apps" && <PortiApps sample={sample} onStake={()=>go("Stake NEAR")} />}
                   {view === "System status" && !sample && <SystemStatus />}
@@ -2326,8 +2310,5 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       )}
     </div>
   );
-}
-function UsersIcon() {
-  return <Network size={20} />;
 }
 
