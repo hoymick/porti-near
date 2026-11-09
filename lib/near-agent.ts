@@ -13,6 +13,7 @@ import {
   fetchJSON,
   initialPorti,
   portiConfig,
+  prepareNearTransfer,
   nearTool,
   tokenPrice,
 } from "./near-services";
@@ -161,6 +162,50 @@ export async function nearChat(id: string, input: any) {
       "SECRET_IN_CHAT",
       "Keep API keys and private keys out of chat. Use Connections for the AI key.",
     );
+  const deposit = !input.imageId && input.message.trim().match(
+    /^(?:please\s+)?deposit\s+(all|max|\d+(?:\.\d+)?)\s+near(?:\s+tokens?)?(?:\s+(?:in|from)\s+my\s+(?:connected|main)\s+wallet)?\s+(?:to|into)\s+(?:(?:my|the)\s+)?(?:(?:created|agent|device)\s+wallet)[.!]?$/i,
+  );
+  if (deposit) {
+    if (!/^[a-zA-Z0-9-]{10,80}$/.test(input.requestId))
+      throw new DomainError("INVALID_CHAT", "Retry the deposit from a new chat message.");
+    const { p } = await portiConfig(id, "state");
+    const prior = p.messages.find((m: any) => m.requestId === input.requestId && m.role === "assistant");
+    if (prior) return { reply: prior, cards: prior.cards };
+    const sender = p.walletRoles?.main?.account;
+    const recipient = p.walletRoles?.agent?.account;
+    const cards = [];
+    let content: string;
+    if (!sender || sender !== input.wallet) {
+      content = "Connect and select your verified main wallet, then repeat the deposit request.";
+    } else if (!recipient) {
+      content = "Link your separate agent wallet in Wallets first. A new device wallet needs to be activated before it can be linked.";
+    } else {
+      try {
+        const amount = /^(all|max)$/i.test(deposit[1]) ? "max" : deposit[1];
+        const draft = await prepareNearTransfer(id, {
+          sender, recipient, amount, requestId: input.requestId,
+          token: "near", denomination: "token", agentDeposit: true,
+        });
+        cards.push({ type: "transfer", draft });
+        content = amount === "max"
+          ? "I prepared the maximum available NEAR deposit after reserving funds for network fees and account storage. Review the amount and approve it in your main wallet."
+          : "I prepared your NEAR deposit. Review the amount and approve it in your main wallet.";
+      } catch (error) {
+        content = error instanceof DomainError ? error.message : "I couldn't prepare the deposit. Please try again.";
+      }
+    }
+    const reply = { id: crypto.randomUUID(), requestId: input.requestId, role: "assistant", content, cards, createdAt: Date.now(), provider: "Porti" };
+    const saved = await mutate(id, (state) => {
+      state.porti ??= initialPorti();
+      const messages = state.porti.messages;
+      const existing = messages.find((m: any) => m.requestId === input.requestId && m.role === "assistant");
+      if (existing) return existing;
+      messages.push({ id: crypto.randomUUID(), requestId: input.requestId, role: "user", content: input.message, createdAt: Date.now() }, reply);
+      state.porti.messages = messages.slice(-100);
+      return reply;
+    });
+    return { reply: saved.result, cards: saved.result.cards };
+  }
   if(input.imageId) await imageFor(id,input.imageId,"ai");
   const buy = purchaseIntent(input.message);
   if(buy){

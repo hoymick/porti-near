@@ -569,6 +569,7 @@ function assertAgentDepositWallets(roles: any, sender: string, recipient: string
 export async function prepareNearTransfer(id: string, input: any) {
   const { sender, token } = input;
   const agentDeposit = input.agentDeposit === true;
+  const maxDeposit = agentDeposit && token === "near" && input.denomination === "token" && input.amount === "max";
   const requestId =
     typeof input.requestId === "string" &&
     /^[a-zA-Z0-9-]{10,80}$/.test(input.requestId)
@@ -621,13 +622,14 @@ export async function prepareNearTransfer(id: string, input: any) {
   await viewAccount(id, recipient);
   const senderState = await viewAccount(id, sender);
   let price: any = null,
-    raw: string;
+    raw = "0";
   try {
     if (input.denomination === "usd") {
       price = await tokenPrice(token);
       raw = usdRaw(input.amount, price.usd, metadata.decimals);
-    } else if (input.denomination === "token")
-      raw = units(input.amount, metadata.decimals);
+    } else if (input.denomination === "token") {
+      if (!maxDeposit) raw = units(input.amount, metadata.decimals);
+    }
     else throw new Error("Choose usd or token amount denomination.");
   } catch (e: any) {
     if (e instanceof DomainError) throw e;
@@ -661,7 +663,9 @@ export async function prepareNearTransfer(id: string, input: any) {
   const storageStaked =
       BigInt(senderState.storage_usage || 0) * BigInt("10000000000000000000"),
     spendable = BigInt(senderState.amount) - storageStaked - BigInt(reserve);
+  if (maxDeposit && spendable > BigInt(0)) raw = spendable.toString();
   if (
+    (maxDeposit && spendable <= BigInt(0)) ||
     spendable < (token === "near" ? BigInt(raw) : BigInt(storage) + BigInt(1))
   )
     throw new DomainError(
