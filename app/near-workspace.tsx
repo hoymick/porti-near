@@ -582,6 +582,8 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
   return (
     <div className="app-shell scout-app near-app">
       <aside className={`sidebar ${menu ? "sc-open" : ""}`}>
+        {/* Full reload intentionally resets the single-page workspace state. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/" className="brand porti-brand">
           <span className="near-brand-icon">✦</span>PORTI
           <span className="near-brand-pill">NEAR</span>

@@ -22,7 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head><script src="/porti-theme.js" /></head>
+      <head>
+        {/* Must run before first paint to apply the saved theme without a light/dark flash. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/porti-theme.js" />
+      </head>
       <body className="antialiased">{children}</body>
     </html>
   );
