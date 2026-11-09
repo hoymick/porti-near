@@ -663,9 +663,9 @@ export async function prepareNearTransfer(id: string, input: any) {
   const storageStaked =
       BigInt(senderState.storage_usage || 0) * BigInt("10000000000000000000"),
     spendable = BigInt(senderState.amount) - storageStaked - BigInt(reserve);
-  if (maxDeposit && spendable > 0n) raw = spendable.toString();
+  if (maxDeposit && spendable > BigInt(0)) raw = spendable.toString();
   if (
-    (maxDeposit && spendable <= 0n) ||
+    (maxDeposit && spendable <= BigInt(0)) ||
     spendable < (token === "near" ? BigInt(raw) : BigInt(storage) + BigInt(1))
   )
     throw new DomainError(
