@@ -1,9 +1,11 @@
 'use client';
 import React, {useState} from 'react';
 
-export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;onConnect:(role:string)=>void;onUnlink:(role:string)=>void;onFund:()=>void;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}) {
+export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;onConnect:(role:string)=>void;onUnlink:(role:string)=>void;onFund:(token:string,amount:string)=>Promise<void>;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}) {
   const [copiedAddress,setCopiedAddress] = useState('');
   const [copyError,setCopyError] = useState('');
+  const [depositToken,setDepositToken] = useState('near');
+  const [depositAmount,setDepositAmount] = useState('');
 
   async function copyAddress(address:string) {
     setCopyError('');
@@ -68,8 +70,22 @@ export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTra
               {copiedAddress===linked.account&&<p className="sc-fine" role="status">Deposit address copied.</p>}
               <div className="wallet-deposit-note"><strong>Before you send</strong><p>Select NEAR mainnet at the sending wallet or exchange. Check this address against the withdrawal details. The sender shows its withdrawal fee.</p></div>
               {role==='agent'&&<>
-                <button className="primary" disabled={sample||busy||!roles.main} onClick={onFund}>Fund from main wallet</button>
-                <p className="sc-fine">{roles.main?'Select your verified main wallet to prepare the funding transfer.':'Link your main wallet to fund this account from inside Porti.'}</p>
+                <h3>Deposit from connected wallet</h3>
+                {roles.main?.account && account === roles.main.account ? (
+                  <form onSubmit={e => {
+                    e.preventDefault();
+                    void onFund(depositToken.trim(), depositAmount.trim());
+                  }}>
+                    <p>From <code>{roles.main.account}</code>. Review the deposit before approving it in your main wallet.</p>
+                    <label htmlFor="agent-deposit-token">Token · use near for native NEAR</label>
+                    <input id="agent-deposit-token" value={depositToken} onChange={e=>setDepositToken(e.target.value)} placeholder="near or exact NEP-141 contract" required />
+                    <label htmlFor="agent-deposit-amount">Amount</label>
+                    <input id="agent-deposit-amount" inputMode="decimal" value={depositAmount} onChange={e=>setDepositAmount(e.target.value)} required />
+                    <button className="primary" disabled={sample||busy||!depositToken.trim()||!depositAmount.trim()}>Review deposit</button>
+                  </form>
+                ) : (
+                  <p className="sc-fine">Connect your main wallet to prepare a deposit to this agent wallet.</p>
+                )}
               </>}
               <p className="sc-fine">For other tokens, confirm token support and storage registration first.</p>
             </section>

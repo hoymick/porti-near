@@ -1649,20 +1649,24 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                         act({ action: "wallet-unlink", role })
                       }
                       onTransfer={() => go("Transfers")}
-                      onFund={() => {
-                        if (walletAccount !== p.walletRoles?.main?.account) {
-                          setError(
-                            "Connect your verified main wallet first, then choose Fund from main wallet.",
-                          );
+                      onFund={async (token, amount) => {
+                        const main = p.walletRoles?.main?.account;
+                        const agent = p.walletRoles?.agent?.account;
+                        if (sample || !wallet || !main || !agent || walletAccount !== main) {
+                          setError("Select your verified main wallet and link a separate agent wallet first.");
                           return;
                         }
-                        setForm({
-                          recipient: p.walletRoles.agent.account,
-                          token: "near",
-                          amount: "1",
+                        const result = await act({
+                          action: "prepare-transfer",
+                          requestId: browserRequestId(),
+                          sender: main,
+                          recipient: agent,
+                          token,
+                          amount,
                           denomination: "token",
+                          agentDeposit: true,
                         });
-                        go("Transfers");
+                        if (result?.draft) openDraft(result.draft);
                       }}
                     />
                   )}
@@ -2138,7 +2142,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                 <X size={20} />
               </button>
             </div>
-            <h2 id="transfer-review-title">Review this transfer.</h2>
+            <h2 id="transfer-review-title">{draft.agentDeposit ? "Review your agent wallet deposit." : "Review this transfer."}</h2>
             <div className="near-transfer-amount">
               <Send size={25} />
               <strong>
@@ -2158,7 +2162,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                 </div>
               )}
               <div>
-                <span>Resolved recipient wallet</span>
+                <span>{draft.agentDeposit ? "To agent wallet" : "Resolved recipient wallet"}</span>
                 <code>{draft.recipient}</code>
               </div>
               <div>

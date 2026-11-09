@@ -557,8 +557,18 @@ export async function addNearWatch(
   });
   return { watched: true, kind, account };
 }
+function assertAgentDepositWallets(roles: any, sender: string, recipient: string) {
+  if (roles?.main?.account !== sender || roles?.agent?.account !== recipient) {
+    throw new DomainError(
+      "AGENT_DEPOSIT_WALLETS",
+      "The verified main or agent wallet changed. Prepare a new deposit.",
+      409,
+    );
+  }
+}
 export async function prepareNearTransfer(id: string, input: any) {
   const { sender, token } = input;
+  const agentDeposit = input.agentDeposit === true;
   const requestId =
     typeof input.requestId === "string" &&
     /^[a-zA-Z0-9-]{10,80}$/.test(input.requestId)
@@ -570,6 +580,7 @@ export async function prepareNearTransfer(id: string, input: any) {
     token,
     input.amount,
     input.denomination,
+    ...(agentDeposit ? [true] : []),
   ]);
   if (requestId) {
     const prior = (await portiConfig(id, "state")).p.drafts.find(
@@ -602,6 +613,10 @@ export async function prepareNearTransfer(id: string, input: any) {
       "TRANSFER_INPUT",
       "Specify a connected sender, exact token contract/native near, and a different NEAR mainnet recipient.",
     );
+  if (agentDeposit) {
+    const {p} = await portiConfig(id, "state");
+    assertAgentDepositWallets(p.walletRoles, sender, recipient);
+  }
   const metadata = await tokenMetadata(id, token);
   await viewAccount(id, recipient);
   const senderState = await viewAccount(id, sender);
@@ -673,6 +688,7 @@ export async function prepareNearTransfer(id: string, input: any) {
     network: "mainnet",
     sender,
     recipient,
+    ...(agentDeposit ? { agentDeposit } : {}),
     recipientUsername: resolvedProfile?.username || null,
     recipientVersion: resolvedProfile?.version || null,
     token,
@@ -713,6 +729,7 @@ export async function prepareNearTransfer(id: string, input: any) {
         "PENDING_TRANSFERS",
         "Verify pending wallet outcomes before preparing more transfers.",
       );
+    if (agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, sender, recipient);
     s.porti.drafts.unshift(draft);
     s.porti.drafts = s.porti.drafts.filter(
       (d: any, i: number) =>
@@ -730,6 +747,7 @@ export async function validateNearDraft(id: string, draftId: string) {
       "DRAFT_EXPIRED",
       "This transfer review expired or was already submitted. Prepare a new transfer.",
     );
+  if (d.agentDeposit) assertAgentDepositWallets(p.walletRoles, d.sender, d.recipient);
   if(d.charityCampaignId){const {assertDonationCampaign}=await import("./charity");await assertDonationCampaign(d.charityCampaignId,d.recipient,d.token);}
   if (d.recipientUsername) {
     const { resolveUsername } = await import("./near-profile");
@@ -792,6 +810,7 @@ export async function validateNearDraft(id: string, draftId: string) {
         "DRAFT_ALREADY_REQUESTED",
         "This review was already sent to a wallet or expired. Check its outcome instead of submitting again.",
       );
+    if (current.agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, current.sender, current.recipient);
     current.status = "wallet_requested";
     current.requestedAt = Date.now();
     current.gasReserve = reserve;
