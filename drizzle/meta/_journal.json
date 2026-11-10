@@ -43,6 +43,13 @@
       "when": 1793826617140,
       "tag": "0005_boring_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794332549394,
+      "tag": "0006_pretty_alex_wilder",
+      "breakpoints": true
     }
   ]
 }

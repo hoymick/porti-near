@@ -1671,7 +1671,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                     />
                   )}
                   {view === "Porti Care" && <Charity roles={p.walletRoles||{}} account={walletAccount} sample={sample} onConnect={()=>connect("main")} onDraft={openDraft}/>}
-                  {view === "Friends" && <Friends sample={sample} />}
+                  {view === "Friends" && <Friends sample={sample} onProfile={()=>setView("Profile")} />}
                   {view === "Telegram" && <TelegramSettings sample={sample} />}
                   {view === "Connections" && (
                     <>
