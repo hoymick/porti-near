@@ -13,17 +13,37 @@ import {
 const DEFAULT_RPC = "https://rpc.mainnet.near.org";
 const MAX_BODY = 4000;
 
+// Dev builds only: a loopback RPC (the local NEAR sandbox from
+// `npm run pocket:sandbox`) skips the mainnet chain-ID check. Production builds
+// compile `import.meta.env.DEV` to false, so they always require mainnet.
+const LOOPBACK_RPC = /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}\/?$/;
+async function localSandboxQuery(rpc: string, params: any) {
+  const r = await fetch(rpc, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: "ussd", method: "query", params }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => null);
+  const d: any = r?.ok ? await r.json().catch(() => null) : null;
+  if (!d?.result || d.error)
+    throw new DomainError("RPC_READ_FAILED", "The local sandbox could not read this pocket.", 503);
+  return d.result;
+}
+
 /** Reads the pocket contract's `get_pocket` view on mainnet (validated chain ID). */
 export async function readPocket(pocketId: string) {
   const rpc = (env as any).PORTI_USSD_RPC || DEFAULT_RPC;
-  const { read } = createInvestigationReader(rpc);
-  const r = await read("ussd", "query", {
+  const params = {
     request_type: "call_function",
     finality: "final",
     account_id: pocketId,
     method_name: "get_pocket",
     args_base64: "e30=", // {}
-  });
+  };
+  const r =
+    import.meta.env.DEV && LOOPBACK_RPC.test(rpc)
+      ? await localSandboxQuery(rpc, params)
+      : await createInvestigationReader(rpc).read("ussd", "query", params);
   try {
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(r.result)));
   } catch {

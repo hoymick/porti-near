@@ -17,7 +17,9 @@
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "build:cloudflare": "node scripts/build-cloudflare.mjs",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
-    "db:local": "node scripts/d1-local.mjs"
+    "db:local": "node scripts/d1-local.mjs",
+    "pocket:sandbox": "node scripts/pocket-sandbox.mjs",
+    "pocket:check": "node scripts/pocket-sandbox-check.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -62,6 +64,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.4.5",
     "json-rpc-2.0": "1.7.1",
+    "near-sandbox": "^0.3.5",
     "raw-body": "3.0.2",
     "react-server-dom-webpack": "19.3.1",
     "tailwindcss": "4.2.1",

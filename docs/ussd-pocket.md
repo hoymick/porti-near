@@ -95,16 +95,24 @@ A phone only reaches a pocket through a `ussd_phones` row on the same channel (`
 
 Optional: set `PORTI_USSD_RPC` to use a mainnet RPC other than `https://rpc.mainnet.near.org`. The chain ID is still verified.
 
-## Local testing
+## Local testing (no mainnet, no NEAR spent)
+
+A local NEAR sandbox runs the real contract and the real one-transaction setup:
 
 ```sh
-npm run dev                                   # Porti on http://127.0.0.1:5173
-npm run db:local -- migrate                   # local D1 starts empty: apply migrations once
-npm run db:local -- link-sim +999000001 pocket.alice.near
+(cd contracts/pocket && cargo near build non-reproducible-wasm)
+npm run db:local -- migrate        # local D1 starts empty: apply migrations once
+npm run pocket:sandbox             # chain on 127.0.0.1:3030, creates alice / pocket.alice / bob,
+                                   # links +999000001 -> pocket.alice.sandbox; keep it running
+echo 'PORTI_USSD_RPC=http://127.0.0.1:3030' >> .dev.vars
+npm run dev                        # restart after changing .dev.vars
+npm run pocket:check               # server key: in-cap send ok; over-cap, withdraw, set_limits refused
 curl -X POST http://127.0.0.1:5173/api/ussd/sim \
-  -d 'sessionId=t1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text='    # menu
+  -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text='    # menu
 curl -X POST http://127.0.0.1:5173/api/ussd/sim \
-  -d 'sessionId=t1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'   # balance
+  -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'   # balance
 ```
 
-Balance reads `get_pocket` from mainnet, so the linked pocket has to exist on chain.
+A loopback `PORTI_USSD_RPC` skips the mainnet chain-ID check **in dev builds only**. Production builds compile that branch out, so they always require mainnet. Sandbox keys go to `.wrangler/pocket-sandbox.json`, which is gitignored and has `0600` permissions.
+
+Verified on the sandbox: the setup batch leaves the pocket with only the server's function-call key (`send`, `freeze`). With that key, a 0.05 send succeeds, a 0.2 send is refused by the per-tx cap, `withdraw` and `set_limits` are refused by the key's method list, and attaching 1 yocto is refused for function-call keys. USSD Balance reflects the spend immediately.
