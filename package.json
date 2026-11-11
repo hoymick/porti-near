@@ -16,7 +16,8 @@
     "check": "tsc --noEmit",
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "build:cloudflare": "node scripts/build-cloudflare.mjs",
-    "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs"
+    "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
+    "db:local": "node scripts/d1-local.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
