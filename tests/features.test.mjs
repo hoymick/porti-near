@@ -74,7 +74,7 @@ test("friend request cannot self-target, bypass a block or cooldown", async () =
   );
   await s.friendAction("a", { action: "request", username: "bob" });
   const pair = (await s.friendsState("a")).links[0].pair;
-  await s.friendAction("b", { action: "remove", pair });
+  await s.friendAction("b", { action: "decline", pair });
   await assert.rejects(
     s.friendAction("a", { action: "request", username: "bob" }),
   );

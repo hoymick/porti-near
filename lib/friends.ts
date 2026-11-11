@@ -13,7 +13,7 @@ const db = () => {
 const fail = (m: string) => {
   throw new DomainError("FRIEND_ACTION", m, 403);
 };
-async function profile(id: string) {
+export async function socialProfile(id: string) {
   const p: any = await db()
     .prepare("SELECT username FROM profiles WHERE owner_id=?")
     .bind(id)
@@ -35,7 +35,9 @@ async function key(a: string, b: string) {
     .join("");
 }
 export async function friendsState(id: string, pair?: string) {
-  const p = await profile(id);
+  let p;
+  try { p = await socialProfile(id); }
+  catch (error) { if (pair || !(error instanceof DomainError) || error.code!=='FRIEND_ACTION') throw error; return {profileRequired:true,links:[],messages:[],pair:null}; }
   const links = await db()
     .prepare(
       `SELECT f.pair, f.status, f.requester=? AS outgoing, f.blocker=? AS blockedByMe, f.updated_at AS updatedAt, p.username FROM friend_links f JOIN profiles p ON p.owner_id=CASE WHEN f.a=? THEN f.b ELSE f.a END WHERE (f.a=? OR f.b=?) AND (f.status<>'blocked' OR f.blocker=?) ORDER BY f.updated_at DESC LIMIT 100`,
@@ -74,7 +76,7 @@ export async function friendAllowed(id: string, pair: string) {
   return r;
 }
 export async function friendAction(id: string, input: any) {
-  await profile(id);
+  await socialProfile(id);
   const now = Date.now();
   if (input.action === "request") {
     let name;
@@ -184,6 +186,14 @@ export async function friendAction(id: string, input: any) {
     status = "accepted";
     condition = "status='pending' AND requester<>?";
     extra = [id];
+  } else if (input.action === "cancel") {
+    condition = "status='pending' AND requester=?";
+    extra = [id];
+  } else if (input.action === "decline") {
+    condition = "status='pending' AND requester<>?";
+    extra = [id];
+  } else if (input.action === "remove") {
+    condition = "status='accepted'";
   } else if (input.action === "block") {
     status = "blocked";
     condition = "(status<>'blocked' OR blocker=?)";
@@ -191,7 +201,7 @@ export async function friendAction(id: string, input: any) {
   } else if (input.action === "unblock") {
     condition = "status='blocked' AND blocker=?";
     extra = [id];
-  } else if (!["remove", "decline", "cancel"].includes(input.action))
+  } else
     fail("Unknown friend action.");
   const r = await db()
     .prepare(

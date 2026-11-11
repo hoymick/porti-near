@@ -262,3 +262,21 @@ html[data-porti-theme=dark] .swap-token-picker li > button[aria-pressed=true] { 
 .swap-token-field .swap-token-picker > p { padding: 8px 4px 0; border-top: 1px solid #c3d9cc; }
 .swap-token-field .swap-token-picker li > button { border-radius: 8px; border-color: transparent; }
 html[data-porti-theme=dark] .swap-token-field { background: #20392c; border-color: #638c71; color: #e4f6eb; }
+
+.porti-social-grid{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.4fr);gap:24px;align-items:start}
+.porti-social-tabs{margin-bottom:24px;gap:12px;flex-wrap:wrap}
+.porti-social .sc-form,.porti-social .sc-buttons{gap:12px}
+.porti-social .sc-form{display:flex;flex-direction:column;margin:20px 0}
+.porti-social .sc-panel{min-width:0}
+.porti-friend-list article{padding:18px 0;border-bottom:1px solid var(--line,#9db5a9)}
+.porti-friend-list article>strong,.porti-friend-list article>small{display:block;margin-bottom:10px}
+.porti-friend-messages{height:380px;overflow:auto;overscroll-behavior:contain;padding:16px;border:1px solid var(--line,#9db5a9);border-radius:20px;margin:20px 0}
+.porti-friend-messages article{max-width:90%;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line,#9db5a9);border-radius:18px;overflow-wrap:anywhere}
+.porti-friend-messages article.mine{margin-left:auto;border-width:2px}
+.porti-friend-messages p{white-space:pre-wrap}
+.porti-group-controls{margin:16px 0;padding:16px;border:1px solid var(--line,#9db5a9);border-radius:18px}
+.porti-group-controls summary{cursor:pointer;font-weight:700}
+.porti-group-controls ul{padding:0;list-style:none}
+.porti-group-controls li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;overflow-wrap:anywhere}
+.porti-social textarea{min-height:100px;resize:vertical}
+@media(max-width:1000px){.porti-social-grid{grid-template-columns:1fr}.porti-friend-messages{height:340px}}
