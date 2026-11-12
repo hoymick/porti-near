@@ -1,4 +1,5 @@
 "use client";
+import {isTransferApproval, latestChatTransfer} from '../lib/chat-transfer-approval.mjs';
 import {browserRequestId} from '../lib/browser-request-id.mjs';
 import { acquireWalletConnection, restoreWalletConnection } from '../lib/wallet-connection.mjs';
 import React, { useEffect, useRef, useState } from "react";
@@ -476,6 +477,14 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setError("Switch to Live for actual NEAR AI chat.");
       return false;
     }
+    if (isTransferApproval(text)) {
+      const review = !imageId && latestChatTransfer(p.messages, p.drafts, walletAccount);
+      if (!review) {
+        setError("No active transfer review in the latest reply for this wallet. Prepare a fresh review, then approve its exact details.");
+        return false;
+      }
+      return await signTransfer(review, true);
+    }
     const d = await act({
       action: "chat",
       message: text,
@@ -577,25 +586,28 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       openDraft(d.draft);
     }
   }
-  async function signTransfer() {
-    if (!walletAccount || !reviewed || !draft || expired || guard.current) return;
+  async function signTransfer(selected = draft, inChat = false) {
+    const review = selected;
+    if (sample || !walletAccount || (!inChat && !reviewed) || !review || review.sender !== walletAccount || review.status !== "awaiting_review" || Date.now() >= review.expiresAt || guard.current) return false;
+    if (inChat && latestChatTransfer(p.messages, p.drafts, walletAccount)?.id !== review.id) return false;
     guard.current = true;
     setBusy("wallet-approval");
     setError("");
     try {
-      const signingWallet = await requireSigningWallet(draft.sender);
+      const signingWallet = await requireSigningWallet(review.sender);
       const accounts = await signingWallet.getAccounts();
-      if (!accounts.some((a: any) => a.accountId === draft.sender))
+      if (!accounts.some((a: any) => a.accountId === review.sender))
         throw new Error("Connected wallet differs from the reviewed sender.");
       const verified = await request({
         action: "validate-draft",
-        draftId: draft.id,
+        draftId: review.id,
       });
       accept(verified);
       const tx = verified.draft.transaction;
-      setDraft(verified.draft);
+      if (!inChat) setDraft(verified.draft);
       // Save the review ID before redirect-capable wallets open; never auto-submit on return.
-      sessionStorage.setItem("porti-pending-draft", draft.id);
+      sessionStorage.setItem("porti-pending-draft", review.id);
+      sessionStorage.setItem("porti-pending-draft-location", inChat ? "chat" : "modal");
       const outcome = await signingWallet.signAndSendTransaction({
         ...tx,
         network: "mainnet",
@@ -605,35 +617,37 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         setMessage(
           "Wallet opened. If it redirected, return here and use the transaction hash to verify the outcome.",
         );
-        return;
+        return true;
       }
       setReceiptHash(hash);
       const submitted = await request({
         action: "save-transfer-hash",
-        draftId: draft.id,
+        draftId: review.id,
         hash,
       });
       accept(submitted);
-      setDraft({ ...verified.draft, status: "submitted", hash });
+      if (!inChat) setDraft({ ...verified.draft, status: "submitted", hash });
       setMessage("Wallet returned a hash. Verifying final outcome…");
       const done = await request({
         action: "record-transfer",
-        draftId: draft.id,
+        draftId: review.id,
         hash,
       });
       accept(done);
-      setDraft({ ...draft, status: "finalized", hash });
+      if (!inChat) setDraft({ ...review, status: "finalized", hash });
       transferRequest.current = {
         id: browserRequestId(),
         expiresAt: Date.now() + 180000,
       };
       setMessage("Transfer finalized and matched to your reviewed details.");
       sessionStorage.removeItem("porti-pending-draft");
+      return true;
     } catch (e: any) {
       setError(
         e.message ||
           "Wallet approval was cancelled or the transfer could not be verified.",
       );
+      return false;
     } finally {
       guard.current = false;
       setBusy("");
@@ -646,7 +660,10 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         saved = state.drafts.find(
           (d: any) => d.id === pending && d.status !== "finalized",
         );
-      if (saved && !draft) openDraft(saved);
+      if (saved && !draft) {
+        if (sessionStorage.getItem("porti-pending-draft-location") === "chat") setOpenChat(true);
+        else openDraft(saved);
+      }
     } catch {}
   }, [state]);
   useEffect(() => {
@@ -2126,6 +2143,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
             }}
           />
         }
+        statusMessage={message}
         messages={sample ? [] : p.messages}
         onSend={sendChat}
         walletAccount={walletAccount}
@@ -2142,6 +2160,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         }}
         onNavigate={screen=>{if(["Swap","Stake NEAR","Buy NEAR","Markets","Transfers"].includes(screen)){setOpenChat(false);go(screen)}}}
         onReport={openReport}
+        drafts={sample ? [] : p.drafts}
+        onApproveTransfer={(d) => signTransfer(d, true)}
         onTransfer={openDraft}
         contextToken={contextToken}
         setContextToken={setContextToken}
@@ -2419,7 +2439,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                 </label>
                 <button
                   className="primary"
-                  onClick={signTransfer}
+                  onClick={() => signTransfer()}
                   disabled={
                     !!busy ||
                     !reviewed ||

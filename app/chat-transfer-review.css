@@ -1,0 +1,9 @@
+.porti-inline-transfer{border:2px solid #7ab79a;border-radius:20px;padding:18px;background:var(--sc-panel,#f0faf5);color:inherit;min-width:0}
+.porti-inline-transfer h3{font-size:1.6rem;margin:0 0 8px}
+.porti-inline-transfer p{font-size:.85rem;line-height:1.6;margin:8px 0 14px}
+.porti-inline-transfer dl{margin:12px 0;display:grid;gap:4px}
+.porti-inline-transfer dt{font-size:.75rem;opacity:.8;margin-top:8px}
+.porti-inline-transfer dd{font-size:.85rem;margin:0;overflow-wrap:anywhere}
+.porti-inline-transfer .sc-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.porti-inline-transfer button{white-space:normal}
+html[data-porti-theme=dark] .porti-inline-transfer{background:#1b3328}
