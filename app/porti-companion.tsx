@@ -18,7 +18,7 @@ export default function PortiCompanion({open,setOpen,showHint,messages,workflow,
  const approvalText=isTransferApproval(text);
  const confirmable=(approvalText||isChatCancellation(text))&&(!!activeTransfer||!!workflow)&&!image;
  useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('porti-companion-position')||'null');if(Number.isFinite(saved?.x)&&Number.isFinite(saved?.y))setPosition({x:Math.min(Math.max(8,saved.x),window.innerWidth-95),y:Math.min(Math.max(8,saved.y),window.innerHeight-110)});}catch{}const resize=()=>setPosition(p=>({x:Math.min(p.x,window.innerWidth-95),y:Math.min(p.y,window.innerHeight-110)}));window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[]);
- useEffect(()=>{list.current?.scrollTo({top:list.current.scrollHeight,behavior:'smooth'});},[messages,busy,open,workflow,chatDraft]);
+ useEffect(()=>{list.current?.scrollTo({top:list.current.scrollHeight,behavior:'smooth'});},[messages,busy,open]);
  function pointerDown(e:React.PointerEvent){if(e.button!==0)return;drag.current={clientX:e.clientX,clientY:e.clientY,x:position.x,y:position.y};moved.current=false;e.currentTarget.setPointerCapture(e.pointerId);}
  function pointerMove(e:React.PointerEvent){if(!drag.current)return;const dx=e.clientX-drag.current.clientX,dy=e.clientY-drag.current.clientY;if(Math.abs(dx)+Math.abs(dy)>5)moved.current=true;setPosition({x:Math.max(8,Math.min(window.innerWidth-95,drag.current.x-dx)),y:Math.max(8,Math.min(window.innerHeight-110,drag.current.y-dy))});}
  function pointerUp(){if(!drag.current)return;drag.current=null;try{localStorage.setItem('porti-companion-position',JSON.stringify(position));}catch{}}
