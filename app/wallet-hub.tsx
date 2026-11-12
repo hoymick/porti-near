@@ -30,7 +30,7 @@ export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTra
       </div>
       <div className="sc-buttons">
         <button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create or unlock device wallet</button>
-        <button className="secondary" disabled={busy||sample} onClick={()=>onConnect('main')}>Connect existing wallet</button>
+        <button className="secondary" disabled={busy||sample} onClick={()=>onConnect('main')}>{account ? 'Change connected wallet' : 'Connect existing wallet'}</button>
       </div>
       <p className="sc-fine">Save your encrypted backup and password. Creating a device address is free; account activation and transactions have NEAR network costs.</p>
       {walletError&&<p className="apps-notice" role="alert">{walletError}</p>}
@@ -56,7 +56,7 @@ export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTra
           </div>
           <div className="sc-buttons">
             {role==='agent'&&<button className="primary" disabled={busy||sample} onClick={onCreateInternal}>Create / unlock inside Porti</button>}
-            <button className={role==='main'?'primary':'secondary'} disabled={busy||sample} onClick={()=>onConnect(role)}>Connect {role} wallet</button>
+            <button className={role==='main'?'primary':'secondary'} disabled={busy||sample} onClick={()=>onConnect(role)}>{selected ? 'Change' : linked ? 'Reconnect' : 'Connect'} {role} wallet</button>
           </div>
           {linked&&<>
             <p className="sc-fine">{selected?'Ready for your wallet approvals.':'Reconnect or unlock this account when you want to sign.'}</p>
