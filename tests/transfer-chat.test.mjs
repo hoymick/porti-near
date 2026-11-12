@@ -75,3 +75,23 @@ test('preparation failure creates no card and reports the real error without cla
  assert.equal(r.reply.steps[0].status,'failed');
  assert.equal(s.state.porti.chatLock,undefined);
 });
+
+test('explicit main-to-agent wording resolves verified roles and rejects a mismatched source',()=>{
+ const text='send 0.5 near from main wallet to agent wallet';
+ const result=transferChatIntent(text,null,ctx);
+ assert.equal(result.transfer.sender,'alice.near');
+ assert.equal(result.transfer.recipient,'agent.near');
+ assert.equal(result.transfer.amount,'0.5');
+ assert.equal(transferChatIntent(text,null,{...ctx,wallet:'other.near'}).transfer,undefined);
+ assert.equal(transferChatIntent(text,null,{...ctx,roles:{agent:roles.agent}}).transfer,undefined);
+ assert.equal(transferChatIntent(text,null,{...ctx,imageId:'image'}).transfer,undefined);
+ assert.equal(transferChatIntent('do not '+text,null,ctx).transfer,undefined);
+ assert.equal(transferChatIntent('send 0.5 NEAR from alice.near to bob.near',null,ctx).transfer.recipient,'bob.near');
+});
+test('main-to-agent sentence produces a review directly without calling the model',async()=>{
+ const s=service();
+ const result=await s.nearChat('owner',{message:'send 0.5 near from main wallet to agent wallet',wallet:'alice.near',requestId:'request-main-agent-123'});
+ assert.equal(result.cards[0].draft.recipient,'agent.near');
+ assert.equal(result.cards[0].draft.amount,'0.5');
+ assert.equal(s.calls(),1);
+});
