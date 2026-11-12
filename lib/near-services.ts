@@ -1,3 +1,4 @@
+import { nearAICompletion } from "./near-ai.mjs";
 import { responseJSON } from "./request-guard.mjs";
 import { env } from "cloudflare:workers";
 import { DomainError } from "./errors.mjs";
@@ -153,7 +154,7 @@ async function fetchJSON(
     const r = await fetch(url, {
       ...init,
       redirect: "manual",
-      signal: AbortSignal.timeout(label === "NEAR AI Cloud" ? 40000 : 12000),
+      signal: AbortSignal.timeout(12000),
     });
     if (r.status === 429)
       throw new DomainError(
@@ -979,22 +980,11 @@ export async function savePortiSettings(id: string, input: any) {
         "INVALID_MODEL",
         "Use a model ID from the NEAR AI Cloud catalog.",
       );
-    const data = await fetchJSON(
-      "https://cloud-api.near.ai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${input.key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: "Reply OK." }],
-          max_tokens: 32,
-        }),
-      },
-      "NEAR AI Cloud",
-    );
+    const data = await nearAICompletion(input.key, {
+      model,
+      messages: [{ role: "user", content: "Reply OK." }],
+      max_tokens: 32,
+    });
     if (!data.choices?.[0]?.message)
       throw new DomainError(
         "AI_RESPONSE",
