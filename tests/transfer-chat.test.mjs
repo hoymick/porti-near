@@ -136,3 +136,7 @@ test('reported sentence with main selected never invokes AI or creates a draft',
  assert.equal(result.cards.length,0);assert.equal(s.calls(),0);
  assert.equal(s.state.porti.chatLock,undefined);
 });
+test('username recipients retain the existing profile-resolution flow',()=>{
+ assert.equal(transferChatIntent('send 0.1 NEAR to @midejnr',null,ctx).handled,false);
+ assert.equal(transferChatIntent('send 0.1 NEAR to @midejnr from my main wallet',null,ctx).handled,false);
+});
