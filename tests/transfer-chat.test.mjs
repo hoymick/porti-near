@@ -95,3 +95,48 @@ test('main-to-agent sentence produces a review directly without calling the mode
  assert.equal(result.cards[0].draft.amount,'0.5');
  assert.equal(s.calls(),1);
 });
+
+const returnRequest='porti send 0.1 near back to my main wallet from my agent wallet';
+test('the reported return-transfer wording and both source orders resolve without AI',()=>{
+ const source={...ctx,wallet:'agent.near'};
+ for(const message of [returnRequest,returnRequest.replace(' from ', '\nfrom '),'Porti, send 0.1 NEAR to my main wallet from my agent wallet.','please transfer 0.1 native NEAR from my agent wallet back to my main wallet','send 0.1 near from agent.near to alice.near','send 0.1 near to alice.near from agent.near']){
+  const result=transferChatIntent(message,null,source);
+  assert.equal(result.handled,true,message);
+  assert.equal(result.transfer.sender,'agent.near');
+  assert.equal(result.transfer.recipient,'alice.near');
+  assert.equal(result.transfer.amount,'0.1');
+ }
+});
+test('return requests with wrong or unverified sources give direct guidance, never fall through to AI',()=>{
+ for(const options of [ctx,{...ctx,wallet:'agent.near',roles:{main:roles.main}},{...ctx,wallet:'agent.near',roles:{...roles,agent:{account:'agent.near'}}}]){
+  const result=transferChatIntent(returnRequest,null,options);
+  assert.equal(result.handled,true);assert.equal(result.transfer,undefined);assert.equal(result.pending,null);
+  assert.match(result.content,/your agent wallet/);
+ }
+ for(const message of ['do not '+returnRequest,returnRequest+' and send 1 NEAR to bob.near',returnRequest+' from bob.near',returnRequest+' tomorrow','send 0.1 near to unknown wallet']){
+  assert.equal(transferChatIntent(message,null,{...ctx,wallet:'agent.near'}).transfer,undefined,message);
+ }
+ assert.equal(transferChatIntent(returnRequest,null,{...ctx,wallet:'agent.near',imageId:'image'}).transfer,undefined);
+});
+test('reported sentence prepares one real return review without the AI key or a model call',async()=>{
+ const s=service(),input={message:returnRequest,wallet:'agent.near',requestId:'request-agent-return-123'};
+ const result=await s.nearChat('owner',input);
+ assert.equal(result.cards[0].draft.sender,'agent.near');
+ assert.equal(result.cards[0].draft.recipient,'alice.near');
+ assert.equal(result.cards[0].draft.amount,'0.1');
+ assert.equal(result.cards[0].draft.agentDeposit,false);
+ assert.match(result.reply.content,/Nothing has been signed or sent/);
+ await s.nearChat('owner',input);assert.equal(s.calls(),1);
+ assert.equal(s.state.porti.chatLock,undefined);
+});
+test('reported sentence with main selected never invokes AI or creates a draft',async()=>{
+ const s=service();
+ const result=await s.nearChat('owner',{message:returnRequest,wallet:'alice.near',requestId:'request-agent-select-123'});
+ assert.match(result.reply.content,/your agent wallet/);
+ assert.equal(result.cards.length,0);assert.equal(s.calls(),0);
+ assert.equal(s.state.porti.chatLock,undefined);
+});
+test('username recipients retain the existing profile-resolution flow',()=>{
+ assert.equal(transferChatIntent('send 0.1 NEAR to @midejnr',null,ctx).handled,false);
+ assert.equal(transferChatIntent('send 0.1 NEAR to @midejnr from my main wallet',null,ctx).handled,false);
+});
