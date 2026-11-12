@@ -1,9 +1,10 @@
+import {assertChatActive,cancelChatTurn} from '../../lib/chat-cancellation.mjs';
 import fs from "node:fs";
 import ts from "typescript";
 import { DatabaseSync } from "node:sqlite";
 import { consumeLimit, responseJSON } from "../../lib/request-guard.mjs";
 export function load(file, deps, names) {
-  const injected = { responseJSON, consumeLimit, ...deps };
+  const injected = { responseJSON, consumeLimit, assertChatActive, cancelChatTurn, ...deps };
   if (deps.fetch) {
     injected.fetch = async (...args) => {
       const r = await deps.fetch(...args);
