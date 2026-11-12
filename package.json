@@ -83,6 +83,9 @@
     "@esbuild-kit/core-utils": {
       "esbuild": "0.25.12"
     },
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "near-sandbox": {
+      "tar": "7.5.23"
+    }
   }
 }
