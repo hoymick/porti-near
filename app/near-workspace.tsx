@@ -32,12 +32,14 @@ import {
   UserRound,
   Wallet,
   X,
+  Smartphone,
 } from "lucide-react";
 import Charity from "./charity";
 import ThemeControl from "./theme-control";
 import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
 import Staking from "./staking";
+import UssdSimulator from "./ussd-simulator";
 import Swaps from "./swaps";
 import Markets from "./markets";
 import BuyNear from "./buy-near";
@@ -66,6 +68,7 @@ const navigation = [
   ["Watchlist", Eye],
   ["Wallets", Wallet],
   ["Stake NEAR", Coins],
+  ["Phone pocket", Smartphone],
   ["Buy NEAR", Coins],
   ["Swap", Coins],
   ["Markets", Coins],
@@ -176,6 +179,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if(new URL(window.location.href).searchParams.get("screen")==="status")setView("System status");
     if(new URL(window.location.href).searchParams.get("screen")==="apps")setView("Porti Apps");
     if(new URL(window.location.href).searchParams.get("screen")==="staking")setView("Stake NEAR");
+    if(new URL(window.location.href).searchParams.get("screen")==="pocket")setView("Phone pocket");
     if(new URL(window.location.href).searchParams.get("screen")==="profile")setView("Profile");
     if(new URL(window.location.href).searchParams.get("screen")==="buy")setView("Buy NEAR");
     if(new URL(window.location.href).searchParams.get("screen")==="swap")setView("Swap");
@@ -564,6 +568,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     "Swap": "NEAR in. Your chosen token out.",
     "Buy NEAR": "Your wallet, funded your way.",
     "Stake NEAR": "Review. Approve. Verify your stake.",
+    "Phone pocket": "Spend from any phone. Within limits.",
     Wallets: "A home for your NEAR wallets.",
     Friends: "Your circle. Your conversations.",
     "Porti Care": "Real needs. Private evidence. Reviewed donations.",
@@ -1635,6 +1640,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                   {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
                   {view === "Swap" && <Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
                   {view === "Buy NEAR" && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
+                  {view === "Phone pocket" && <UssdSimulator />}
                   {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && (
                     <WalletHub
