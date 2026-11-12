@@ -50,6 +50,13 @@
       "when": 1794332549394,
       "tag": "0006_pretty_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794428641917,
+      "tag": "0007_sparkling_fantastic_four",
+      "breakpoints": true
     }
   ]
 }

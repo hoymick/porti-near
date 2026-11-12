@@ -81,3 +81,30 @@ reconcilePocketReceipt(draftId: string, hash: string): Promise<
 Success evidence for a pocket send: `final_execution_status === "FINAL"`, signer and receiver are both the pocket, the action is a `send` FunctionCall with the exact draft args, the logs contain the `send` event, the transfer receipt to `receiverId` succeeded, and there is **no** `send_failed` event.
 
 If the username's mapping `version` changed between the confirm screen and submission, refuse the send.
+
+## USSD endpoints
+
+| Route | Caller | Auth | Phones |
+| --- | --- | --- | --- |
+| `POST /api/ussd?token=…` | Africa's Talking callback | `PORTI_USSD_TOKEN` (24+ chars, constant-time compare) | Real numbers only. `+999…` is refused. |
+| `POST /api/ussd/sim` | Porti simulator widget, curl | None (public). Rate-limited per phone (30/min) and per IP (60/min) | `+999…` test numbers only |
+
+Both routes are exempt from Cloudflare Access, and only those two exact paths are. Any forged `oai-*`, `x-porti-*` or Access headers are stripped, so the handler never sees an identity. Both routes accept Africa's Talking form fields (`sessionId`, `serviceCode`, `phoneNumber`, `text`) or the same fields as JSON, and reply in `text/plain` with `CON …` or `END …` (at most 182 characters).
+
+A phone only reaches a pocket through a `ussd_phones` row on the same channel (`simulator` or `live`). A session is bound to one phone and one channel, and expires after 3 minutes.
+
+Optional: set `PORTI_USSD_RPC` to use a mainnet RPC other than `https://rpc.mainnet.near.org`. The chain ID is still verified.
+
+## Local testing
+
+```sh
+npm run dev                                   # Porti on http://127.0.0.1:5173
+npm run db:local -- migrate                   # local D1 starts empty: apply migrations once
+npm run db:local -- link-sim +999000001 pocket.alice.near
+curl -X POST http://127.0.0.1:5173/api/ussd/sim \
+  -d 'sessionId=t1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text='    # menu
+curl -X POST http://127.0.0.1:5173/api/ussd/sim \
+  -d 'sessionId=t1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'   # balance
+```
+
+Balance reads `get_pocket` from mainnet, so the linked pocket has to exist on chain.
