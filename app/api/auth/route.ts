@@ -58,6 +58,14 @@ export async function POST(r: Request) {
     if (input.action === "verify") {
       await consumeLimit(db(), "auth-ip:" + ip, "auth-verify", 20, 60_000);
       const s = await completeLogin(db(), { challengeId: input.challengeId, proof: input.proof }, { readAccessKeys });
+      // The login proof already establishes ownership. Persist the main role
+      // before any workspace feature or chat can race the client restoration.
+      // Existing, deliberately different wallet roles are left intact.
+      try {
+        await linkLoginWallet(db(), sessionCookie(s.token, { secure }), "near:" + s.accountId, initialPorti);
+      } catch (e) {
+        if (!(e instanceof DomainError) || !["WALLET_CONFLICT", "SAME_WALLET"].includes(e.code)) throw e;
+      }
       return Response.json(
         { account: s.accountId },
         { headers: { "Set-Cookie": sessionCookie(s.token, { secure }), "Cache-Control": "no-store" } },
