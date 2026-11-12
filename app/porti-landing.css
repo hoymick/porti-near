@@ -156,3 +156,5 @@ html[data-porti-theme=dark] .pl{
   .pl-review,.pl-ai:hover .pl-review,.pl-split:has(.pl-ai:hover) .pl-line-lock{animation:none}
   .pl-btn{transition:none}
 }
+.pl-btn:disabled{opacity:.6;cursor:progress;transform:none;box-shadow:var(--pl-shadow)}
+.pl-error{font-size:15px;margin:14px 0 0;color:var(--pl-no);font-weight:700}

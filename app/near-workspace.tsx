@@ -151,6 +151,14 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       expiresAt: Date.now() + 180000,
     };
   }, [form, walletAccount]);
+  const [sessionAccount, setSessionAccount] = useState("");
+  useEffect(() => {
+    if (!signedIn) return;
+    fetch("/api/auth", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: any) => setSessionAccount(typeof d.account === "string" ? d.account : ""))
+      .catch(() => {});
+  }, [signedIn]);
   const connector = useRef<any>(null),
     guard = useRef(false),
     refreshAt = useRef(0),
@@ -275,6 +283,74 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
       prev?.focus();
     };
   }, [report, draft]);
+  async function ensureConnector() {
+    if (!connector.current) {
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      connector.current = new NearConnector({
+        network: "mainnet",
+        autoConnect: false,
+        features: { signMessage: true, signAndSendTransaction: true },
+      });
+      connector.current.on("wallet:signOut", () => {
+        setWallet(null);
+        setWalletAccount("");
+      });
+      connector.current.on("wallet:signIn", (event: any) => {
+        setWallet(event.wallet);
+        setWalletAccount(event.accounts?.[0]?.accountId || "");
+      });
+    }
+    return connector.current;
+  }
+  async function authApi(body: any) {
+    const r = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const d: any = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error?.message || "Sign-in is unavailable. Try again.");
+    return d;
+  }
+  // Sign in with a NEAR wallet: pick a wallet, sign a free one-time message,
+  // and the server opens a session for that account. No gas, no transaction.
+  async function signInWithWallet() {
+    if (guard.current) return;
+    guard.current = true;
+    setBusy("signin");
+    setError("");
+    try {
+      const w = await (await ensureConnector()).connect();
+      const account = (await w.getAccounts())?.[0]?.accountId;
+      if (!nearAccountOK(account)) throw new Error("Select a NEAR mainnet account.");
+      const { challenge: c } = await authApi({ action: "challenge", account });
+      const proof = await w.signMessage({
+        message: c.message,
+        recipient: c.recipient,
+        nonce: Uint8Array.from(atob(c.nonce), (x) => x.charCodeAt(0)),
+        network: "mainnet",
+        signerId: account,
+      });
+      await authApi({ action: "verify", challengeId: c.id, proof });
+      window.location.assign("/");
+    } catch (e: any) {
+      setError(e.message || "Sign-in was cancelled.");
+    } finally {
+      guard.current = false;
+      setBusy("");
+    }
+  }
+  async function signOut() {
+    setBusy("signout");
+    try {
+      await authApi({ action: "logout" });
+      if (wallet) await connector.current?.disconnect(wallet).catch(() => {});
+    } catch {
+      // The session cookie is cleared server-side; reload regardless.
+    }
+    window.location.assign("/");
+  }
   async function connect(role: string = "main") {
     if (sample) {
       setError("Switch to Live before connecting a wallet.");
@@ -285,22 +361,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     setBusy("connect");
     setError("");
     try {
-      if (!connector.current) {
-        const { NearConnector } = await import("@hot-labs/near-connect");
-        connector.current = new NearConnector({
-          network: "mainnet",
-          autoConnect: false,
-          features: { signMessage: true, signAndSendTransaction: true },
-        });
-        connector.current.on("wallet:signOut", () => {
-          setWallet(null);
-          setWalletAccount("");
-        });
-        connector.current.on("wallet:signIn", (event: any) => {
-          setWallet(event.wallet);
-          setWalletAccount(event.accounts?.[0]?.accountId || "");
-        });
-      }
+      await ensureConnector();
       const w = await connector.current.connect();
       const accounts = await w.getAccounts();
       if (!nearAccountOK(accounts?.[0]?.accountId))
@@ -587,10 +648,14 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
   if (!signedIn && !sample)
     return (
       <PortiLanding
-        onWalkthrough={() => {
+        onDemo={(screen?: string) => {
           setSample(true);
+          if (screen) setView(screen);
           window.scrollTo(0, 0);
         }}
+        onSignIn={signInWithWallet}
+        signingIn={busy === "signin"}
+        error={error}
       />
     );
   return (
@@ -699,6 +764,15 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                 ? accountLabel(walletAccount)
                 : "Connect NEAR wallet"}
             </button>
+            {signedIn ? (
+              <button className="secondary" onClick={signOut} disabled={busy === "signout"} title={sessionAccount ? "Signed in as " + sessionAccount : undefined}>
+                {sessionAccount ? accountLabel(sessionAccount) + " · " : ""}Sign out
+              </button>
+            ) : (
+              <button className="primary" onClick={signInWithWallet} disabled={!!busy}>
+                Sign in
+              </button>
+            )}
           </div>
         </header>
         <main>
