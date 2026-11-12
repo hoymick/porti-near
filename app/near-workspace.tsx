@@ -40,6 +40,7 @@ import SystemStatus from "./system-status";
 import PortiApps from "./porti-apps";
 import Staking from "./staking";
 import UssdSimulator from "./ussd-simulator";
+import PortiLanding from "./porti-landing";
 import Swaps from "./swaps";
 import Markets from "./markets";
 import BuyNear from "./buy-near";
@@ -583,6 +584,15 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     Connections: "Connect the tools behind Porti.",
     "Ask Porti": "Talk to your little onchain guide.",
   };
+  if (!signedIn && !sample)
+    return (
+      <PortiLanding
+        onWalkthrough={() => {
+          setSample(true);
+          window.scrollTo(0, 0);
+        }}
+      />
+    );
   return (
     <div className="app-shell scout-app near-app">
       <aside className={`sidebar ${menu ? "sc-open" : ""}`}>
