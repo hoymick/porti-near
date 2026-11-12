@@ -1,11 +1,9 @@
 "use client";
 // Signed-out home. One idea: a signature line splits what Porti's AI can do
 // from what only your wallet can do. Every claim here must stay verified.
-import { ArrowRight, Check, Clock, Lock, Phone, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, Check, Clock, Lock, Phone, ShieldCheck, Wallet, X } from "lucide-react";
 import "./porti-landing.css";
 
-const SIGN_IN = "/signin-with-chatgpt?return_to=/";
-const SIGN_IN_POCKET = "/signin-with-chatgpt?return_to=" + encodeURIComponent("/?screen=pocket");
 
 const aiCan = [
   ["Research a token", "holders, liquidity, live charts and the risk evidence that exists"],
@@ -40,7 +38,14 @@ const notYet = [
   "An independent security audit",
 ];
 
-export default function PortiLanding({ onWalkthrough }: { onWalkthrough: () => void }) {
+type Props = {
+  onDemo: (screen?: string) => void;
+  onSignIn: () => void;
+  signingIn: boolean;
+  error: string;
+};
+
+export default function PortiLanding({ onDemo, onSignIn, signingIn, error }: Props) {
   return (
     <div className="pl">
       <header className="pl-top">
@@ -53,7 +58,9 @@ export default function PortiLanding({ onWalkthrough }: { onWalkthrough: () => v
           <a href="#pocket">Phone pocket</a>
           <a href="#proof">Proof</a>
           <a href="#ledger">What’s verified</a>
-          <a className="pl-btn pl-btn-small" href={SIGN_IN} target="_top">Open Porti</a>
+          <button type="button" className="pl-btn pl-btn-small" onClick={onSignIn} disabled={signingIn}>
+            {signingIn ? "Waiting for wallet…" : "Sign in"}
+          </button>
         </nav>
       </header>
 
@@ -66,14 +73,18 @@ export default function PortiLanding({ onWalkthrough }: { onWalkthrough: () => v
               for you to review. Only your wallet can move your NEAR.
             </p>
             <div className="pl-ctas">
-              <a className="pl-btn" href={SIGN_IN} target="_top">
-                Open Porti <ArrowRight size={18} aria-hidden />
-              </a>
-              <button type="button" className="pl-btn pl-btn-ghost" onClick={onWalkthrough}>
-                Take the walkthrough
+              <button type="button" className="pl-btn" onClick={() => onDemo()}>
+                Try demo <ArrowRight size={18} aria-hidden />
+              </button>
+              <button type="button" className="pl-btn pl-btn-ghost" onClick={onSignIn} disabled={signingIn}>
+                <Wallet size={18} aria-hidden /> {signingIn ? "Waiting for wallet…" : "Sign in with NEAR wallet"}
               </button>
             </div>
-            <p className="pl-fine">The walkthrough uses sample data. No sign-in, no wallet, no funds.</p>
+            {error ? (
+              <p className="pl-error" role="alert">{error}</p>
+            ) : (
+              <p className="pl-fine">The demo uses sample data: no sign-in, no wallet, no funds. Signing in asks your wallet for a free signature, not a transaction.</p>
+            )}
           </div>
 
           <div className="pl-split" role="group" aria-label="Who can do what">
@@ -121,9 +132,9 @@ export default function PortiLanding({ onWalkthrough }: { onWalkthrough: () => v
               smartphone or data plan needed. It spends from a small, capped account that your main wallet
               sets up. The caps live in the contract, not in Porti’s server.
             </p>
-            <a className="pl-btn" href={SIGN_IN_POCKET} target="_top">
+            <button type="button" className="pl-btn" onClick={() => onDemo("Phone pocket")}>
               <Phone size={18} aria-hidden /> Dial the simulator
-            </a>
+            </button>
           </div>
           <div className="pl-pocket-visual">
             <dl className="pl-caps" aria-label="Demo pocket limits">
@@ -176,8 +187,10 @@ export default function PortiLanding({ onWalkthrough }: { onWalkthrough: () => v
           <div>
             <h2 id="pl-close-title">Porti brings the clipboard. You keep the pen.</h2>
             <div className="pl-ctas">
-              <a className="pl-btn" href={SIGN_IN} target="_top">Open Porti <ArrowRight size={18} aria-hidden /></a>
-              <button type="button" className="pl-btn pl-btn-ghost" onClick={onWalkthrough}>Take the walkthrough</button>
+              <button type="button" className="pl-btn" onClick={() => onDemo()}>Try demo <ArrowRight size={18} aria-hidden /></button>
+              <button type="button" className="pl-btn pl-btn-ghost" onClick={onSignIn} disabled={signingIn}>
+                <Wallet size={18} aria-hidden /> Sign in with NEAR wallet
+              </button>
             </div>
           </div>
         </section>
