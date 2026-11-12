@@ -1,6 +1,7 @@
 "use client";
 import {isTransferApproval, latestChatTransfer} from '../lib/chat-transfer-approval.mjs';
 import {chatWorkflows,isChatCancellation} from '../lib/chat-workflows.mjs';
+import {assertWalletTransactionSupported,transferSigningError} from '../lib/wallet-transaction-support.mjs';
 import {browserRequestId} from '../lib/browser-request-id.mjs';
 import { acquireWalletConnection, restoreWalletConnection } from '../lib/wallet-connection.mjs';
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -618,15 +619,19 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     guard.current = true;
     setBusy("wallet-approval");
     setError("");
+    let walletRequested = false;
+    let returnedHash = "";
     try {
       const signingWallet = await requireSigningWallet(review.sender);
       const accounts = await signingWallet.getAccounts();
       if (!accounts.some((a: any) => a.accountId === review.sender))
         throw new Error("Connected wallet differs from the reviewed sender.");
+      assertWalletTransactionSupported(signingWallet, review.transaction);
       const verified = await request({
         action: "validate-draft",
         draftId: review.id,
       });
+      walletRequested = true;
       accept(verified);
       const tx = verified.draft.transaction;
       if (!inChat) setDraft(verified.draft);
@@ -644,6 +649,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         );
         return true;
       }
+      returnedHash = hash;
       setReceiptHash(hash);
       const submitted = await request({
         action: "save-transfer-hash",
@@ -668,10 +674,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       sessionStorage.removeItem("porti-pending-draft");
       return true;
     } catch (e: any) {
-      setError(
-        e.message ||
-          "Wallet approval was cancelled or the transfer could not be verified.",
-      );
+      setError(transferSigningError(e, walletRequested, returnedHash));
       return false;
     } finally {
       guard.current = false;
