@@ -494,7 +494,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setError("Switch to Live for actual NEAR AI chat.");
       return false;
     }
-    if (!imageId && (isTransferApproval(text)||isChatCancellation(text)) && chatWorkflow) {
+    if (!imageId && (isTransferApproval(text)||isChatCancellation(text)) && (chatWorkflow||chatConfirmation.current)) {
       const action=chatConfirmation.current;
       if(!action){setError("Complete the fields and prepare a review in the open panel first. No action was approved.");return false;}
       if(isChatCancellation(text)){await action.cancel();return true;}
@@ -2148,6 +2148,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         </main>
       </div>
       <PortiCompanion
+        onReviewConfirmation={registerChatConfirmation}
+        requireWallet={requireSigningWallet}
         workflow={chatWorkflow}
         workflowPanel={chatWorkflow?renderFeature(chatWorkflow,true):null}
         onWorkflow={openChatWorkflow}
