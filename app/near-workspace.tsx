@@ -155,6 +155,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     };
   }, [form, walletAccount]);
   const [sessionAccount, setSessionAccount] = useState("");
+  const sessionAccountRef = useRef(sessionAccount);
+  sessionAccountRef.current = sessionAccount;
   useEffect(() => {
     if (!signedIn) return;
     fetch("/api/auth", { cache: "no-store" })
@@ -162,6 +164,9 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       .then((d: any) => {
         const account = typeof d.account === "string" ? d.account : "";
         setSessionAccount(account);
+        // A verified sign-in selects this account across the app, even while
+        // its provider is loading or locked. Signing is acquired only on approval.
+        setWalletAccount(current => current || account);
         if (!account) setRestoringWallet(false);
       })
       .catch(() => setRestoringWallet(false));
@@ -302,7 +307,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       });
       connector.current.on("wallet:signOut", () => {
         setWallet(null);
-        setWalletAccount("");
+        setWalletAccount(sessionAccountRef.current);
       });
       connector.current.on("wallet:signIn", (event: any) => {
         setWallet(event.wallet);
@@ -442,6 +447,17 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setBusy("");
     }
   }
+  async function requireSigningWallet(expectedAccount = walletAccount) {
+    if (!nearAccountOK(expectedAccount)) throw new Error("Select a NEAR wallet first.");
+    const connected = await acquireWalletConnection(await ensureConnector(), {
+      current: wallet ? { wallet, account: walletAccount } : null,
+      expectedAccount,
+    });
+    if (!connected) throw new Error("Open your wallet to approve this action.");
+    setWallet(connected.wallet);
+    setWalletAccount(connected.account);
+    return connected.wallet;
+  }
   async function useEmbeddedWallet(w: any) {
     if (guard.current || sample) return false;
     guard.current = true; setBusy("embedded-verify"); setError("");
@@ -466,6 +482,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       imageId,
       requestId: browserRequestId(),
       wallet: walletAccount,
+      signingAvailable: !!wallet,
       contextToken,
     });
     if (d) setOpenChat(true);
@@ -497,7 +514,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
   }
   async function linkProfile(e: React.FormEvent) {
     e.preventDefault();
-    if (!wallet || !walletAccount) {
+    if (!walletAccount) {
       setError("Connect a NEAR wallet first.");
       return;
     }
@@ -515,13 +532,14 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     });
     if (!d) return;
     try {
-      const accounts = await wallet.getAccounts();
+      const signingWallet = await requireSigningWallet();
+      const accounts = await signingWallet.getAccounts();
       if (!accounts.some((a: any) => a.accountId === walletAccount))
         throw new Error(
           "Wallet account changed. Connect the selected account again.",
         );
       const c = d.challenge,
-        proof = await wallet.signMessage({
+        proof = await signingWallet.signMessage({
           message: c.message,
           recipient: c.recipient,
           nonce: Uint8Array.from(atob(c.nonce), (x) => x.charCodeAt(0)),
@@ -560,12 +578,13 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     }
   }
   async function signTransfer() {
-    if (!wallet || !reviewed || !draft || expired || guard.current) return;
+    if (!walletAccount || !reviewed || !draft || expired || guard.current) return;
     guard.current = true;
     setBusy("wallet-approval");
     setError("");
     try {
-      const accounts = await wallet.getAccounts();
+      const signingWallet = await requireSigningWallet(draft.sender);
+      const accounts = await signingWallet.getAccounts();
       if (!accounts.some((a: any) => a.accountId === draft.sender))
         throw new Error("Connected wallet differs from the reviewed sender.");
       const verified = await request({
@@ -577,7 +596,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setDraft(verified.draft);
       // Save the review ID before redirect-capable wallets open; never auto-submit on return.
       sessionStorage.setItem("porti-pending-draft", draft.id);
-      const outcome = await wallet.signAndSendTransaction({
+      const outcome = await signingWallet.signAndSendTransaction({
         ...tx,
         network: "mainnet",
       });
@@ -806,7 +825,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
             </div>
             <button
               className="secondary near-connect-button"
-              onClick={wallet ? () => go("Profile") : () => connect()}
+              onClick={walletAccount ? () => go("Profile") : () => connect()}
               disabled={!!busy || sample || restoringWallet}
             >
               <Wallet size={15} />
@@ -1522,10 +1541,10 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                             onClick={async () => {
                               await connector.current.disconnect(wallet);
                               setWallet(null);
-                              setWalletAccount("");
+                              setWalletAccount(sessionAccountRef.current);
                             }}
                           >
-                            Disconnect selected wallet
+                            Disconnect signing provider
                           </button>
                         )}
                       </section>
@@ -1773,14 +1792,15 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                   )}
                   {restoringWallet && ["Swap", "Stake NEAR", "Buy NEAR", "Wallets", "Porti Care", "Transfers", "Profile"].includes(view) && <section className="sc-panel" role="status">Restoring your shared NEAR wallet…</section>}
                   {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
-                  {view === "Swap" && !restoringWallet && <Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
+                  {view === "Swap" && !restoringWallet && <Swaps requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
                   {view === "Buy NEAR" && !restoringWallet && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
                   {view === "Phone pocket" && <UssdSimulator />}
-                  {view === "Stake NEAR" && !restoringWallet && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
+                  {view === "Stake NEAR" && !restoringWallet && <Staking requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && !restoringWallet && (
                     <WalletHub
                       onCreateInternal={()=>setWalletLocation("modal")}
                       walletError={error}
+                      signingAvailable={!!wallet}
                       roles={p.walletRoles || {}}
                       account={walletAccount}
                       sample={sample}
@@ -1793,7 +1813,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                       onFund={async (token, amount) => {
                         const main = p.walletRoles?.main?.account;
                         const agent = p.walletRoles?.agent?.account;
-                        if (sample || !wallet || !main || !agent || walletAccount !== main) {
+                        if (sample || !main || !agent || walletAccount !== main) {
                           setError("Select your verified main wallet and link a separate agent wallet first.");
                           return;
                         }
@@ -2077,7 +2097,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         </main>
       </div>
       <PortiCompanion
-        swapPanel={<Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
+        swapPanel={<Swaps requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat && walletLocation !== "modal"}
         setOpen={setOpenChat}
@@ -2101,7 +2121,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
             onDisconnected={() => {
               if (["porti-embedded", "porti-local"].includes(wallet?.kind)) {
                 setWallet(null);
-                setWalletAccount("");
+                setWalletAccount(sessionAccountRef.current);
               }
             }}
           />
@@ -2405,7 +2425,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     !reviewed ||
                     expired ||
                     draft.status !== "awaiting_review" ||
-                    !wallet ||
+                    !walletAccount ||
                     walletAccount !== draft.sender
                   }
                 >
@@ -2414,7 +2434,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     ? "Waiting for wallet…"
                     : "Approve in my NEAR wallet"}
                 </button>
-                {(!wallet || walletAccount !== draft.sender) && (
+                {(!walletAccount || walletAccount !== draft.sender) && (
                   <button
                     className="secondary"
                     disabled={!!busy}
