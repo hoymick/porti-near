@@ -1,5 +1,6 @@
 "use client";
 import {browserRequestId} from '../lib/browser-request-id.mjs';
+import { restoreWalletConnection } from '../lib/wallet-connection.mjs';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -123,6 +124,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     [reviewed, setReviewed] = useState(false),
     [wallet, setWallet] = useState<any>(null),
     [walletAccount, setWalletAccount] = useState(""),
+    [restoringWallet, setRestoringWallet] = useState(signedIn),
     [username, setUsername] = useState(""),
     [menu, setMenu] = useState(false),
     [search, setSearch] = useState(""),
@@ -156,10 +158,15 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if (!signedIn) return;
     fetch("/api/auth", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d: any) => setSessionAccount(typeof d.account === "string" ? d.account : ""))
-      .catch(() => {});
+      .then((d: any) => {
+        const account = typeof d.account === "string" ? d.account : "";
+        setSessionAccount(account);
+        if (!account) setRestoringWallet(false);
+      })
+      .catch(() => setRestoringWallet(false));
   }, [signedIn]);
   const connector = useRef<any>(null),
+    connectorLoading = useRef<Promise<any> | null>(null),
     guard = useRef(false),
     refreshAt = useRef(0),
     modalRef = useRef<HTMLElement>(null);
@@ -284,7 +291,8 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     };
   }, [report, draft]);
   async function ensureConnector() {
-    if (!connector.current) {
+    if (connector.current) return connector.current;
+    if (!connectorLoading.current) connectorLoading.current = (async () => {
       const { NearConnector } = await import("@hot-labs/near-connect");
       connector.current = new NearConnector({
         network: "mainnet",
@@ -299,9 +307,27 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
         setWallet(event.wallet);
         setWalletAccount(event.accounts?.[0]?.accountId || "");
       });
-    }
-    return connector.current;
+      return connector.current;
+    })().catch((e) => { connectorLoading.current = null; throw e; });
+    return connectorLoading.current;
   }
+  // Rehydrate the provider after the landing-page redirect and refresh. This
+  // only reads the wallet's existing accounts; it never opens a wallet picker.
+  useEffect(() => {
+    if (!signedIn || !sessionAccount) return;
+    let cancelled = false;
+    (async () => {
+      const restored = await restoreWalletConnection(await ensureConnector(), sessionAccount);
+      if (cancelled || !restored) return;
+      setWallet(restored.wallet);
+      setWalletAccount(restored.account);
+      await authApi({ action: "restore-wallet" });
+      const d = await request();
+      if (!cancelled) accept(d);
+    })().catch((e) => { if (!cancelled) setError(e.message || "Wallet restoration failed. Try reconnecting."); })
+      .finally(() => { if (!cancelled) setRestoringWallet(false); });
+    return () => { cancelled = true; };
+  }, [signedIn, sessionAccount]);
   async function authApi(body: any) {
     const r = await fetch("/api/auth", {
       method: "POST",
@@ -345,7 +371,9 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     setBusy("signout");
     try {
       await authApi({ action: "logout" });
-      if (wallet) await connector.current?.disconnect(wallet).catch(() => {});
+      const c = await ensureConnector();
+      const connected = await restoreWalletConnection(c, sessionAccount);
+      if (connected) await c.disconnect(connected.wallet).catch(() => {});
     } catch {
       // The session cookie is cleared server-side; reload regardless.
     }
@@ -757,10 +785,10 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             <button
               className="secondary near-connect-button"
               onClick={wallet ? () => go("Profile") : () => connect()}
-              disabled={!!busy || sample}
+              disabled={!!busy || sample || restoringWallet}
             >
               <Wallet size={15} />
-              {walletAccount
+              {restoringWallet ? "Restoring wallet…" : walletAccount
                 ? accountLabel(walletAccount)
                 : "Connect NEAR wallet"}
             </button>

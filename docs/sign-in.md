@@ -32,6 +32,21 @@ To make the hosted site public, judges included, run `PORTI_AUTH_MODE=near` (the
 
 Data created under the old Access identity (`cf-access:…`) is not carried over to wallet sessions (`near:<account>`).
 
+## One connection throughout Porti
+
+After sign-in redirects to the dashboard, Porti restores the selected provider with
+`getConnectedWallet()` without opening the wallet selector or calling `signIn`.
+The provider's account must match the authenticated account. The same wallet and
+account are shared with Swap, Stake NEAR, Buy NEAR, Transfers, Care and Phone pocket.
+`POST /api/auth {action:"restore-wallet"}` reuses the verified login to establish
+the main-wallet role in that account's own workspace, without a second signature.
+It requires same-origin access, a valid session and the matching server identity;
+it cannot replace a different main wallet or use the agent account as main.
+No private keys or spending permissions are stored. Locked/disconnected providers
+and mismatched accounts require an explicit reconnect. Individual transactions
+still require the wallet's normal approval. Username linking remains a separate
+explicit action.
+
 ## Local
 
 `npm run db:local -- migrate` applies the auth tables. On localhost, the old instant test sign-in (`/signin-with-chatgpt`) now just redirects home.
