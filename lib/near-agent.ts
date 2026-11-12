@@ -166,6 +166,9 @@ export async function nearChat(id: string, input: any) {
       "SECRET_IN_CHAT",
       "Keep API keys and private keys out of chat. Use Connections for the AI key.",
     );
+  if(!input.imageId&&/^(?:(?:can you|could you|please)\s+)?(?:stake\b|(?:in|from|using)\s+(?:my\s+)?(?:main|agent|device)\s+wallet[, ]+stake\b)/i.test(input.message.trim())){
+    const {stakeChat}=await import('./stake-chat');return stakeChat(id,input);
+  }
   // Resolve native transfers and typed follow-ups before the model. Persist
   // only an expiring, user-originated intent; it never signs or submits funds.
   let transferTurn: any;

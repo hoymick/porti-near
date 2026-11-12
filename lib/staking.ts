@@ -25,8 +25,13 @@ export async function stakingAction(id:string,input:any){
   const p=(await readWorkspace(id)).state.porti||initialPorti();if(!nearAccountOK(input.sender)||!Object.values(p.walletRoles||{}).some((w:any)=>w.account===input.sender))throw new DomainError('WALLET_REQUIRED','Connect and verify your main or agent wallet first.');
   let raw:string;try{raw=units(input.amount,24)}catch{throw new DomainError('STAKE_AMOUNT','Enter an exact NEAR amount.');}
   if(BigInt(raw)<BigInt("1000000000000000000000000")||BigInt(raw)>BigInt("100000000000000000000000000"))throw new DomainError('STAKE_LIMIT','Stake between 1 and 100 NEAR per review.');
+  if(input.requestId!==undefined){
+   if(typeof input.requestId!=='string'||!/^[a-zA-Z0-9-]{10,80}$/.test(input.requestId))throw new DomainError('STAKE_REQUEST','Invalid staking request identifier.');
+   const prior=p.stakeDrafts?.find((d:any)=>d.requestId===input.requestId);
+   if(prior){if(prior.sender!==input.sender||prior.raw!==raw)throw new DomainError('STAKE_REQUEST','This request already belongs to another staking review.');return {draft:prior};}
+  }
   const reserve=await available(id,input.sender,raw),contract=await viewAccount(id,STAKE_CONTRACT),state=await runPortiApp(id,'meta-pool','read-state',{}),price=BigInt(state.data.stNearPriceYocto);if(price<=BigInt("0"))throw new DomainError('RATE_UNAVAILABLE','Staking reference rate unavailable.');
-  const d={id:crypto.randomUUID(),sender:input.sender,raw,amount:decimal(raw,24),reserve,estimatedStNear:decimal(BigInt(raw)*BigInt("1000000000000000000000000")/price,24),codeHash:contract.code_hash,createdAt:Date.now(),expiresAt:Date.now()+120000,status:'review',transaction:stakeTransaction(input.sender,raw)};
+  const d={id:crypto.randomUUID(),...(input.requestId?{requestId:input.requestId}:{}),sender:input.sender,raw,amount:decimal(raw,24),reserve,estimatedStNear:decimal(BigInt(raw)*BigInt("1000000000000000000000000")/price,24),codeHash:contract.code_hash,createdAt:Date.now(),expiresAt:Date.now()+120000,status:'review',transaction:stakeTransaction(input.sender,raw)};
   await mutate(id,s=>{s.porti??=initialPorti();const ds=s.porti.stakeDrafts||[];if(ds.some((x:any)=>x.sender===input.sender&&['wallet_requested','submitted'].includes(x.status)))throw new DomainError('STAKE_PENDING','A staking review is awaiting a result. Verify its original hash before preparing another stake.');s.porti.stakeDrafts=[...ds.slice(-19),d]});return {draft:d};
  }
  const p=(await readWorkspace(id)).state.porti,d=p?.stakeDrafts?.find((x:any)=>x.id===input.draftId);if(!d)throw new DomainError('STAKE_REVIEW','Staking review not found.');
