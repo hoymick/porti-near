@@ -150,6 +150,8 @@ export async function POST(request: Request) {
               "Wait for Porti to finish before clearing chat.",
             );
           p.messages = [];
+          delete p.pendingChatTransfer;
+          delete p.chatLock;
         }
         if (action === "remove-ai") delete p.aiKeyCipher;
         if (action === "remove-index") delete p.indexKeyCipher;
