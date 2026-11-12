@@ -1,3 +1,4 @@
+import { assertTransferSourceRole } from "./review-wallet.mjs";
 import { nearAICompletion } from "./near-ai.mjs";
 import { responseJSON } from "./request-guard.mjs";
 import { env } from "cloudflare:workers";
@@ -583,6 +584,7 @@ export async function prepareNearTransfer(id: string, input: any) {
     input.amount,
     input.denomination,
     ...(agentDeposit ? [true] : []),
+    ...(input.senderRole != null ? [input.senderRole] : []),
   ]);
   if (requestId) {
     const prior = (await portiConfig(id, "state")).p.drafts.find(
@@ -615,6 +617,7 @@ export async function prepareNearTransfer(id: string, input: any) {
       "TRANSFER_INPUT",
       "Specify a connected sender, exact token contract/native near, and a different NEAR mainnet recipient.",
     );
+  if (input.senderRole != null) assertTransferSourceRole((await portiConfig(id, "state")).p.walletRoles, input.senderRole, sender);
   if (agentDeposit) {
     const {p} = await portiConfig(id, "state");
     assertAgentDepositWallets(p.walletRoles, sender, recipient);
@@ -692,6 +695,7 @@ export async function prepareNearTransfer(id: string, input: any) {
     fingerprint,
     network: "mainnet",
     sender,
+    ...(input.senderRole != null ? { senderRole: input.senderRole } : {}),
     recipient,
     ...(agentDeposit ? { agentDeposit } : {}),
     recipientUsername: resolvedProfile?.username || null,
@@ -734,6 +738,7 @@ export async function prepareNearTransfer(id: string, input: any) {
         "PENDING_TRANSFERS",
         "Verify pending wallet outcomes before preparing more transfers.",
       );
+    if (input.senderRole != null) assertTransferSourceRole(s.porti.walletRoles, input.senderRole, sender);
     if (agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, sender, recipient);
     s.porti.drafts.unshift(draft);
     s.porti.drafts = s.porti.drafts.filter(
@@ -752,6 +757,7 @@ export async function validateNearDraft(id: string, draftId: string) {
       "DRAFT_EXPIRED",
       "This transfer review expired or was already submitted. Prepare a new transfer.",
     );
+  if (d.senderRole != null) assertTransferSourceRole(p.walletRoles, d.senderRole, d.sender);
   if (d.agentDeposit) assertAgentDepositWallets(p.walletRoles, d.sender, d.recipient);
   if(d.charityCampaignId){const {assertDonationCampaign}=await import("./charity");await assertDonationCampaign(d.charityCampaignId,d.recipient,d.token);}
   if (d.recipientUsername) {
@@ -815,6 +821,7 @@ export async function validateNearDraft(id: string, draftId: string) {
         "DRAFT_ALREADY_REQUESTED",
         "This review was already sent to a wallet or expired. Check its outcome instead of submitting again.",
       );
+    if (current.senderRole != null) assertTransferSourceRole(s.porti.walletRoles, current.senderRole, current.sender);
     if (current.agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, current.sender, current.recipient);
     current.status = "wallet_requested";
     current.requestedAt = Date.now();

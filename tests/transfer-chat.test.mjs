@@ -82,7 +82,7 @@ test('explicit main-to-agent wording resolves verified roles and rejects a misma
  assert.equal(result.transfer.sender,'alice.near');
  assert.equal(result.transfer.recipient,'agent.near');
  assert.equal(result.transfer.amount,'0.5');
- assert.equal(transferChatIntent(text,null,{...ctx,wallet:'other.near'}).transfer,undefined);
+ assert.equal(transferChatIntent(text,null,{...ctx,wallet:'other.near'}).transfer.sender,'alice.near');
  assert.equal(transferChatIntent(text,null,{...ctx,roles:{agent:roles.agent}}).transfer,undefined);
  assert.equal(transferChatIntent(text,null,{...ctx,imageId:'image'}).transfer,undefined);
  assert.equal(transferChatIntent('do not '+text,null,ctx).transfer,undefined);
@@ -108,7 +108,7 @@ test('the reported return-transfer wording and both source orders resolve withou
  }
 });
 test('return requests with wrong or unverified sources give direct guidance, never fall through to AI',()=>{
- for(const options of [ctx,{...ctx,wallet:'agent.near',roles:{main:roles.main}},{...ctx,wallet:'agent.near',roles:{...roles,agent:{account:'agent.near'}}}]){
+ for(const options of [{...ctx,wallet:'agent.near',roles:{main:roles.main}},{...ctx,wallet:'agent.near',roles:{...roles,agent:{account:'agent.near'}}}]){
   const result=transferChatIntent(returnRequest,null,options);
   assert.equal(result.handled,true);assert.equal(result.transfer,undefined);assert.equal(result.pending,null);
   assert.match(result.content,/your agent wallet/);
@@ -129,11 +129,13 @@ test('reported sentence prepares one real return review without the AI key or a 
  await s.nearChat('owner',input);assert.equal(s.calls(),1);
  assert.equal(s.state.porti.chatLock,undefined);
 });
-test('reported sentence with main selected never invokes AI or creates a draft',async()=>{
+test('explicit agent source prepares a role-bound review while main remains selected',async()=>{
  const s=service();
  const result=await s.nearChat('owner',{message:returnRequest,wallet:'alice.near',requestId:'request-agent-select-123'});
- assert.match(result.reply.content,/your agent wallet/);
- assert.equal(result.cards.length,0);assert.equal(s.calls(),0);
+ assert.equal(result.cards[0].draft.sender,'agent.near');
+ assert.equal(result.cards[0].draft.senderRole,'agent');
+ assert.equal(result.cards[0].draft.recipient,'alice.near');
+ assert.equal(s.calls(),1);
  assert.equal(s.state.porti.chatLock,undefined);
 });
 test('username recipients retain the existing profile-resolution flow',()=>{
