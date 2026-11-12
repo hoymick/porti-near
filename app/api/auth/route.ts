@@ -1,7 +1,9 @@
 // Sign in with a NEAR wallet (challenge -> signed message -> session cookie),
 // current session, and sign out. Public by design: it is how users sign in.
 import { env } from "cloudflare:workers";
-import { errorResponse, readJSON, sameOrigin } from "../../../lib/workspace";
+import { errorResponse, readJSON, sameOrigin, owner } from "../../../lib/workspace";
+import { linkLoginWallet } from "../../../lib/login-wallet.mjs";
+import { initialPorti } from "../../../lib/near-services";
 import { consumeLimit } from "../../../lib/request-guard.mjs";
 import { DomainError } from "../../../lib/errors.mjs";
 import { createInvestigationReader } from "../../../lib/near-services";
@@ -43,6 +45,12 @@ export async function POST(r: Request) {
     const url = new URL(r.url);
     const secure = url.protocol === "https:";
     const ip = r.headers.get("CF-Connecting-IP") || "local";
+    if (input.action === "restore-wallet") {
+      const id = await owner();
+      await consumeLimit(db(), id, "auth-restore", 30, 60_000);
+      const main = await linkLoginWallet(db(), r.headers.get("Cookie"), id, initialPorti);
+      return Response.json({ main }, { headers: { "Cache-Control": "no-store" } });
+    }
     if (input.action === "challenge") {
       await consumeLimit(db(), "auth-ip:" + ip, "auth-challenge", 20, 60_000);
       return Response.json({ challenge: await createLoginChallenge(db(), input.account, url.origin) });
