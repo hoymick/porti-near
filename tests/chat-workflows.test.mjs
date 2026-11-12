@@ -24,3 +24,14 @@ test('staking only opens the mocked wallet after review validation and blocks in
   await action('app/staking.tsx','approveStake',deps)();assert.deepEqual(calls,status==='review'?['approve','wallet','verify']:[]);
  }
 });
+
+ test('replaced confirmation cannot execute a newer review and cleanup preserves a replacement',async()=>{
+  const source=stripTypeScriptTypes(fs.readFileSync('app/use-chat-confirmation.ts','utf8')).replace(/^import[\s\S]*?;\s*$/gm,'').replace('export default function','function');
+  const ref={current:null},cleanups=[];let registered;const calls=[];
+  const hook=new Function('useRef','useEffect',source+';return useChatConfirmation;')(value=>{if(!ref.current)ref.current=value;return ref},fn=>cleanups.push(fn()));
+  const register=(value,previous)=>{if(value)registered=value;else if(registered===previous)registered=null};
+  hook(register,'review-one',async()=>calls.push('one'));const old=registered;
+  hook(register,'review-two',async()=>calls.push('two'));const current=registered;
+  await old.approve();assert.deepEqual(calls,[]);cleanups[0]();assert.equal(registered,current);
+  await current.approve();assert.deepEqual(calls,['two']);cleanups[1]();assert.equal(registered,null);
+ });
