@@ -59,3 +59,11 @@ test('approval recovers the actual matching provider and refuses a different acc
   assert.equal(selections, 1, 'explicit approval may open the provider');
   await assert.rejects(acquireWalletConnection(connector, { expectedAccount: 'bob.near' }), /reviewed NEAR account/);
 });
+
+test('an exact chat staking review shows one approval without a second amount form',()=>{
+ const html=renderToStaticMarkup(React.createElement(component('app/staking.tsx','Staking'),{account:'agent.near',wallet:null,sample:false,compact:true,active:true,initialDraft:{id:'review',sender:'agent.near',amount:'1',status:'review',estimatedStNear:'0.6',reserve:'10000000000000000000000',expiresAt:Date.now()+60000},onConnect:()=>assert.fail(),requireWallet:()=>assert.fail('render cannot sign')}));
+ assert.match(html,/Approve staking in wallet/);
+ assert.doesNotMatch(html,/Prepare staking review/);
+ assert.doesNotMatch(html,/Stake amount in NEAR/);
+ assert.match(html,/meta-pool.near/);
+});

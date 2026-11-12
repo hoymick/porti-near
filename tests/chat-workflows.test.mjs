@@ -20,7 +20,7 @@ test('swap confirmations respect exact stage, expiry, sender and live mode',asyn
 test('staking only opens the mocked wallet after review validation and blocks inactive reviews',async()=>{
  for(const status of ['review','wallet_requested','finalized']){
   const calls=[],draft={id:'s',sender:'alice.near',status,expiresAt:Date.now()+60000};
-  const deps={busy:false,sample:false,draft,account:'alice.near',run:async fn=>fn(),requireWallet:async()=>({getAccounts:async()=>[{accountId:'alice.near'}],signAndSendTransaction:async()=>{calls.push('wallet');return {transaction:{hash:'h'}}}}),api:async d=>{calls.push(d.action);return {draft:{...draft,transaction:{receiverId:'meta-pool.near'}}}},setDraft:()=>{},sessionStorage:{setItem:()=>{},removeItem:()=>{}},setHash:()=>{},verify:async()=>calls.push('verify')};
+  const deps={active:true,busy:false,sample:false,draft,account:'alice.near',run:async fn=>fn(),requireWallet:async()=>({getAccounts:async()=>[{accountId:'alice.near'}],signAndSendTransaction:async()=>{calls.push('wallet');return {transaction:{hash:'h'}}}}),api:async d=>{calls.push(d.action);return {draft:{...draft,transaction:{receiverId:'meta-pool.near'}}}},setDraft:()=>{},sessionStorage:{setItem:()=>{},removeItem:()=>{}},setHash:()=>{},verify:async()=>calls.push('verify')};
   await action('app/staking.tsx','approveStake',deps)();assert.deepEqual(calls,status==='review'?['approve','wallet','verify']:[]);
  }
 });
@@ -35,3 +35,8 @@ test('staking only opens the mocked wallet after review validation and blocks in
   await old.approve();assert.deepEqual(calls,[]);cleanups[0]();assert.equal(registered,current);
   await current.approve();assert.deepEqual(calls,['two']);cleanups[1]();assert.equal(registered,null);
  });
+
+test('historical staking cards cannot request another wallet signature',async()=>{
+ const deps={active:false,busy:false,sample:false,draft:{status:'review'},requireWallet:()=>assert.fail('inactive card must not open wallet')};
+ await action('app/staking.tsx','approveStake',deps)();
+});
