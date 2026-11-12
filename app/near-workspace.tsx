@@ -513,6 +513,14 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       const done=await request({action:"wallet-verify",role:"agent",proof});accept(done);internalSigners.current.set(account,w);setWallet(w);setWalletAccount(account);setMessage(done.message);return true;
     }catch(e:any){setError(e.message||"Internal wallet ownership verification failed.");return false}finally{guard.current=false;setBusy("")}
   }
+  async function clearMiniChat() {
+    const result = await act({ action: "clear-chat" });
+    if (!result) return false;
+    setChatWorkflow(""); setChatDraft(null); setContextToken("");
+    chatConfirmation.current = null;
+    setMessage("Chat cleared. Wallets, saved transfer reviews and receipts are unchanged.");
+    return true;
+  }
   async function sendChat(text: string, imageId?: string) {
     if (restoringWallet) return false;
     if (sample) {
@@ -2210,6 +2218,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         statusMessage={message}
         messages={sample ? [] : p.messages}
         onSend={sendChat}
+        onClear={clearMiniChat}
         walletAccount={walletAccount}
         walletRoles={p.walletRoles || {}}
         busy={!!busy || restoringWallet}
