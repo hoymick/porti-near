@@ -1,8 +1,9 @@
 "use client";
 import {isTransferApproval, latestChatTransfer} from '../lib/chat-transfer-approval.mjs';
+import {chatWorkflows,isChatCancellation} from '../lib/chat-workflows.mjs';
 import {browserRequestId} from '../lib/browser-request-id.mjs';
 import { acquireWalletConnection, restoreWalletConnection } from '../lib/wallet-connection.mjs';
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -145,6 +146,19 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     [receiptHash, setReceiptHash] = useState(""),
     [expired, setExpired] = useState(false),
     [profileConsent, setProfileConsent] = useState(false);
+  const [chatWorkflow,setChatWorkflow]=useState("");
+  const [chatDraft,setChatDraft]=useState<any>(null);
+  const chatConfirmation=useRef<any>(null);
+  const registerChatConfirmation=useCallback((action:any,previous?:any)=>{
+    if(action)chatConfirmation.current=action;
+    else if(!previous||chatConfirmation.current===previous)chatConfirmation.current=null;
+  },[]);
+  function openChatWorkflow(screen:string){
+    if(!chatWorkflows.includes(screen))return;
+    setWalletLocation(null);chatConfirmation.current=null;setChatDraft(null);setChatWorkflow(screen);setOpenChat(true);
+  }
+  function showChatDraft(d:any){chatConfirmation.current=null;setChatWorkflow("");setChatDraft(d);setOpenChat(true);request().then(accept).catch(e=>setError(e.message));}
+  function chatTransfer(){return latestChatTransfer(chatDraft?[{role:"assistant",cards:[{type:"transfer",draft:chatDraft}]}]:p.messages,p.drafts,walletAccount);}
   const transferRequest = useRef({
     id: browserRequestId(),
     expiresAt: Date.now() + 180000,
@@ -159,7 +173,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
   const sessionAccountRef = useRef(sessionAccount);
   sessionAccountRef.current = sessionAccount;
   useEffect(() => {
-    if (!signedIn) return;
+  if (!signedIn) return;
     fetch("/api/auth", { cache: "no-store" })
       .then((r) => r.json())
       .then((d: any) => {
@@ -238,7 +252,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setBusy("");
     }
   }
-  function go(v: string) {
+  const go = navigateFeature;
+  function navigateFeature(v: string) {
     setView(v);
     setMenu(false);
     setError("");
@@ -250,7 +265,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     setReport(s);
     if (s.kind === "token" && !sample) setContextToken(s.address);
   }
-  function openDraft(d: any) {
+  const openDraft = openModalDraft;
+  function openModalDraft(d: any) {
     setDraft(d);
     setReviewed(false);
     setReceiptHash(d.hash || "");
@@ -477,14 +493,22 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setError("Switch to Live for actual NEAR AI chat.");
       return false;
     }
+    if (!imageId && (isTransferApproval(text)||isChatCancellation(text)) && chatWorkflow) {
+      const action=chatConfirmation.current;
+      if(!action){setError("Complete the fields and prepare a review in the open panel first. No action was approved.");return false;}
+      if(isChatCancellation(text)){await action.cancel();return true;}
+      await action.approve();return true;
+    }
+    if (!imageId && isChatCancellation(text) && chatDraft) {setChatDraft(null);setMessage("Chat review dismissed. Nothing was signed or sent.");return true;}
     if (isTransferApproval(text)) {
-      const review = !imageId && latestChatTransfer(p.messages, p.drafts, walletAccount);
+      const review = !imageId && chatTransfer();
       if (!review) {
         setError("No active transfer review in the latest reply for this wallet. Prepare a fresh review, then approve its exact details.");
         return false;
       }
       return await signTransfer(review, true);
     }
+    setChatWorkflow("");setChatDraft(null);chatConfirmation.current=null;
     const d = await act({
       action: "chat",
       message: text,
@@ -497,7 +521,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     if (d) setOpenChat(true);
     return !!d;
   }
-  async function investigate(e?: React.FormEvent, kind?: string, a?: string) {
+  const investigate = investigateFeature;
+  async function investigateFeature(e?: React.FormEvent, kind?: string, a?: string) {
     e?.preventDefault();
     const k = kind || (view === "Track wallet" ? "wallet" : "token"),
       value = (a || account).trim();
@@ -564,7 +589,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       setError(e.message || "Wallet-link signature cancelled.");
     }
   }
-  async function prepare(e: React.FormEvent) {
+  async function prepare(e: React.FormEvent, inChat = false) {
     e.preventDefault();
     if (sample) {
       setError("Transfers are available in Live mode only.");
@@ -583,13 +608,13 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     });
     if (d?.draft) {
       transferRequest.current.expiresAt = d.draft.expiresAt;
-      openDraft(d.draft);
+      if(inChat)showChatDraft(d.draft);else openDraft(d.draft);
     }
   }
   async function signTransfer(selected = draft, inChat = false) {
     const review = selected;
     if (sample || !walletAccount || (!inChat && !reviewed) || !review || review.sender !== walletAccount || review.status !== "awaiting_review" || Date.now() >= review.expiresAt || guard.current) return false;
-    if (inChat && latestChatTransfer(p.messages, p.drafts, walletAccount)?.id !== review.id) return false;
+    if (inChat && chatTransfer()?.id !== review.id) return false;
     guard.current = true;
     setBusy("wallet-approval");
     setError("");
@@ -731,198 +756,11 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     Connections: "Connect the tools behind Porti.",
     "Ask Porti": "Talk to your little onchain guide.",
   };
-  if (!signedIn && !sample)
-    return (
-      <PortiLanding
-        onDemo={(screen?: string) => {
-          setSample(true);
-          if (screen) setView(screen);
-          window.scrollTo(0, 0);
-        }}
-        onSignIn={signInWithWallet}
-        signingIn={busy === "signin"}
-        error={error}
-      />
-    );
-  return (
-    <div className="app-shell scout-app near-app">
-      <aside className={`sidebar ${menu ? "sc-open" : ""}`}>
-        {/* Full reload intentionally resets the single-page workspace state. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/" className="brand porti-brand">
-          <span className="near-brand-icon">✦</span>PORTI
-          <span className="near-brand-pill">NEAR</span>
-        </a>
-        <button
-          className="icon-button sc-close-menu"
-          aria-label="Close navigation"
-          onClick={() => setMenu(false)}
-        >
-          <X size={19} />
-        </button>
-        <button className="near-profile-shortcut" onClick={() => go("Profile")}>
-          <span className="sc-avatar">
-            {profile?.username?.slice(0, 1).toUpperCase() || "P"}
-          </span>
-          <span>
-            {profile ? "@" + profile.username : "Your Porti profile"}
-            <small>
-              {profile ? "Wallet ownership verified" : "Claim your @username"}
-            </small>
-          </span>
-          <ChevronRight size={13} />
-        </button>
-        <div className="nav-label">YOUR LITTLE ONCHAIN WORLD</div>
-        <PortiNavigation navigation={navigation} view={view} onNavigate={go} unread={alerts.filter((a: any) => !a.read).length} />
-        <div className="sidebar-bottom">
-          <div className="sc-chain">
-            <Network size={19} />
-            <div>
-              Made for NEAR<small>Mainnet · human-approved actions</small>
-            </div>
-          </div>
-          <button
-            className="near-sidebar-chat"
-            onClick={() => setOpenChat(true)}
-          >
-            <img src="/porti-guide.png" alt="" />
-            <span>
-              A little help?<strong>Just ask Porti.</strong>
-            </span>
-            <MessageCircle size={15} />
-          </button>
-          <ThemeControl/>
-        <div className="sc-version">
-            NEAR AI Cloud<span>v0.14</span>
-          </div>
-        </div>
-      </aside>
-      <div className="main-shell">
-        <header className="topbar">
-          <button
-            className="sc-mobile-menu icon-button"
-            aria-label="Toggle navigation"
-            onClick={() => setMenu(!menu)}
-          >
-            <Menu size={20} />
-          </button>
-          <div className="breadcrumb">
-            Porti’s world
-            <ChevronRight size={13} />
-            <span>{view}</span>
-          </div>
-          <div className="near-top-actions">
-            <div className="sc-mode">
-              <button
-                aria-pressed={!sample}
-                className={!sample ? "selected" : ""}
-                disabled={!!busy}
-                onClick={() => {
-                  setSample(false);
-                  setReport(null);
-                  setDraft(null);
-                  setError("");
-                }}
-              >
-                Live
-              </button>
-              <button
-                aria-pressed={sample}
-                className={sample ? "selected" : ""}
-                disabled={!!busy}
-                onClick={() => {
-                  setSample(true);
-                  setReport(null);
-                  setDraft(null);
-                  setError("");
-                }}
-              >
-                Walkthrough
-              </button>
-            </div>
-            <button
-              className="secondary near-connect-button"
-              onClick={walletAccount ? () => go("Profile") : () => connect()}
-              disabled={!!busy || sample || restoringWallet}
-            >
-              <Wallet size={15} />
-              {restoringWallet ? "Restoring wallet…" : walletAccount
-                ? accountLabel(walletAccount)
-                : "Connect NEAR wallet"}
-            </button>
-            {signedIn ? (
-              <button className="secondary" onClick={signOut} disabled={busy === "signout"} title={sessionAccount ? "Signed in as " + sessionAccount : undefined}>
-                Sign out
-              </button>
-            ) : (
-              <button className="primary" onClick={signInWithWallet} disabled={!!busy}>
-                Sign in
-              </button>
-            )}
-          </div>
-        </header>
-        <main>
-          {sample ? (
-            <div className="sc-banner sample">
-              <Info size={15} />
-              <span>
-                <strong>Fictional walkthrough.</strong> No real token data, AI
-                responses, wallet links or transfers.
-              </span>
-            </div>
-          ) : (
-            <div className="sc-banner">
-              <ShieldCheck size={15} />
-              <span>
-                NEAR mainnet · Porti researches and prepares. Your wallet
-                approves transfers.
-              </span>
-              <button onClick={() => go("Connections")}>
-                {state?.aiConfigured ? "NEAR AI configured" : "Connect NEAR AI"}
-                <ArrowRight size={13} />
-              </button>
-            </div>
-          )}
-          {error && (
-            <div className="sc-notice error" role="alert">
-              <Info size={18} />
-              <span>{error}</span>
-              <button aria-label="Dismiss error" onClick={() => setError("")}>
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {message && (
-            <div className="sc-notice" role="status">
-              <Check size={18} />
-              <span>{message}</span>
-              <button
-                aria-label="Dismiss message"
-                onClick={() => setMessage("")}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {!signedIn && !sample ? (
-            <section className="sc-panel sc-empty">
-              <h1>Meet your onchain companion.</h1>
-              <p>
-                Open a private workspace for NEAR token research, wallet
-                profiles and reviewed transfers.
-              </p>
-              <a
-                className="primary"
-                href="/signin-with-chatgpt?return_to=/"
-                target="_top"
-              >
-                Open Porti
-                <ArrowRight size={16} />
-              </a>
-            </section>
-          ) : (
-            <>
-              {view === "Overview" ? (
+    function renderFeature(view:string,inChat=false){
+    const go=(screen:string)=>inChat?openChatWorkflow(screen):navigateFeature(screen);
+    const openDraft=(d:any)=>inChat?showChatDraft(d):openModalDraft(d);
+    const investigate=(e?:React.FormEvent,kind?:string,a?:string)=>investigateFeature(e,kind||(view==="Track wallet"?"wallet":"token"),a);
+    return <>{view === "Overview" ? (
                 <>
                   <section className="sc-hero near-hero">
                     <div>
@@ -1604,7 +1442,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                             selected wallet. Porti prepares details; your wallet
                             approves the transaction.
                           </p>
-                          <form onSubmit={prepare}>
+                          <form onSubmit={e=>prepare(e,inChat)}>
                             <label htmlFor="transfer-recipient">
                               Recipient · @username or NEAR account
                             </label>
@@ -1809,13 +1647,13 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                   )}
                   {restoringWallet && ["Swap", "Stake NEAR", "Buy NEAR", "Wallets", "Porti Care", "Transfers", "Profile"].includes(view) && <section className="sc-panel" role="status">Restoring your shared NEAR wallet…</section>}
                   {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
-                  {view === "Swap" && !restoringWallet && <Swaps requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
+                  {view === "Swap" && !restoringWallet && <Swaps onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
                   {view === "Buy NEAR" && !restoringWallet && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
                   {view === "Phone pocket" && <UssdSimulator />}
-                  {view === "Stake NEAR" && !restoringWallet && <Staking requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
+                  {view === "Stake NEAR" && !restoringWallet && <Staking onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && !restoringWallet && (
                     <WalletHub
-                      onCreateInternal={()=>setWalletLocation("modal")}
+                      onCreateInternal={()=>setWalletLocation(inChat?"chat":"modal")}
                       walletError={error}
                       signingAvailable={!!wallet}
                       roles={p.walletRoles || {}}
@@ -1849,7 +1687,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     />
                   )}
                   {view === "Porti Care" && !restoringWallet && <Charity roles={p.walletRoles||{}} account={walletAccount} sample={sample} onConnect={()=>connect("main")} onDraft={openDraft}/>}
-                  {view === "Friends" && <Friends sample={sample} onProfile={()=>setView("Profile")} />}
+                  {view === "Friends" && <Friends sample={sample} onProfile={()=>go("Profile")} />}
                   {view === "Telegram" && <TelegramSettings sample={sample} />}
                   {view === "Connections" && (
                     <>
@@ -2102,7 +1940,200 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     </>
                   )}
                 </>
-              )}
+              )}</>;
+  }
+  if (!signedIn && !sample)
+    return (
+      <PortiLanding
+        onDemo={(screen?: string) => {
+          setSample(true);
+          if (screen) setView(screen);
+          window.scrollTo(0, 0);
+        }}
+        onSignIn={signInWithWallet}
+        signingIn={busy === "signin"}
+        error={error}
+      />
+    );
+  return (
+    <div className="app-shell scout-app near-app">
+      <aside className={`sidebar ${menu ? "sc-open" : ""}`}>
+        {/* Full reload intentionally resets the single-page workspace state. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/" className="brand porti-brand">
+          <span className="near-brand-icon">✦</span>PORTI
+          <span className="near-brand-pill">NEAR</span>
+        </a>
+        <button
+          className="icon-button sc-close-menu"
+          aria-label="Close navigation"
+          onClick={() => setMenu(false)}
+        >
+          <X size={19} />
+        </button>
+        <button className="near-profile-shortcut" onClick={() => go("Profile")}>
+          <span className="sc-avatar">
+            {profile?.username?.slice(0, 1).toUpperCase() || "P"}
+          </span>
+          <span>
+            {profile ? "@" + profile.username : "Your Porti profile"}
+            <small>
+              {profile ? "Wallet ownership verified" : "Claim your @username"}
+            </small>
+          </span>
+          <ChevronRight size={13} />
+        </button>
+        <div className="nav-label">YOUR LITTLE ONCHAIN WORLD</div>
+        <PortiNavigation navigation={navigation} view={view} onNavigate={go} unread={alerts.filter((a: any) => !a.read).length} />
+        <div className="sidebar-bottom">
+          <div className="sc-chain">
+            <Network size={19} />
+            <div>
+              Made for NEAR<small>Mainnet · human-approved actions</small>
+            </div>
+          </div>
+          <button
+            className="near-sidebar-chat"
+            onClick={() => setOpenChat(true)}
+          >
+            <img src="/porti-guide.png" alt="" />
+            <span>
+              A little help?<strong>Just ask Porti.</strong>
+            </span>
+            <MessageCircle size={15} />
+          </button>
+          <ThemeControl/>
+        <div className="sc-version">
+            NEAR AI Cloud<span>v0.14</span>
+          </div>
+        </div>
+      </aside>
+      <div className="main-shell">
+        <header className="topbar">
+          <button
+            className="sc-mobile-menu icon-button"
+            aria-label="Toggle navigation"
+            onClick={() => setMenu(!menu)}
+          >
+            <Menu size={20} />
+          </button>
+          <div className="breadcrumb">
+            Porti’s world
+            <ChevronRight size={13} />
+            <span>{view}</span>
+          </div>
+          <div className="near-top-actions">
+            <div className="sc-mode">
+              <button
+                aria-pressed={!sample}
+                className={!sample ? "selected" : ""}
+                disabled={!!busy}
+                onClick={() => {
+                  setSample(false);
+                  setReport(null);
+                  setDraft(null);
+                  setError("");
+                }}
+              >
+                Live
+              </button>
+              <button
+                aria-pressed={sample}
+                className={sample ? "selected" : ""}
+                disabled={!!busy}
+                onClick={() => {
+                  setSample(true);
+                  setReport(null);
+                  setDraft(null);
+                  setError("");
+                }}
+              >
+                Walkthrough
+              </button>
+            </div>
+            <button
+              className="secondary near-connect-button"
+              onClick={walletAccount ? () => go("Profile") : () => connect()}
+              disabled={!!busy || sample || restoringWallet}
+            >
+              <Wallet size={15} />
+              {restoringWallet ? "Restoring wallet…" : walletAccount
+                ? accountLabel(walletAccount)
+                : "Connect NEAR wallet"}
+            </button>
+            {signedIn ? (
+              <button className="secondary" onClick={signOut} disabled={busy === "signout"} title={sessionAccount ? "Signed in as " + sessionAccount : undefined}>
+                Sign out
+              </button>
+            ) : (
+              <button className="primary" onClick={signInWithWallet} disabled={!!busy}>
+                Sign in
+              </button>
+            )}
+          </div>
+        </header>
+        <main>
+          {sample ? (
+            <div className="sc-banner sample">
+              <Info size={15} />
+              <span>
+                <strong>Fictional walkthrough.</strong> No real token data, AI
+                responses, wallet links or transfers.
+              </span>
+            </div>
+          ) : (
+            <div className="sc-banner">
+              <ShieldCheck size={15} />
+              <span>
+                NEAR mainnet · Porti researches and prepares. Your wallet
+                approves transfers.
+              </span>
+              <button onClick={() => go("Connections")}>
+                {state?.aiConfigured ? "NEAR AI configured" : "Connect NEAR AI"}
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          )}
+          {error && (
+            <div className="sc-notice error" role="alert">
+              <Info size={18} />
+              <span>{error}</span>
+              <button aria-label="Dismiss error" onClick={() => setError("")}>
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          {message && (
+            <div className="sc-notice" role="status">
+              <Check size={18} />
+              <span>{message}</span>
+              <button
+                aria-label="Dismiss message"
+                onClick={() => setMessage("")}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          {!signedIn && !sample ? (
+            <section className="sc-panel sc-empty">
+              <h1>Meet your onchain companion.</h1>
+              <p>
+                Open a private workspace for NEAR token research, wallet
+                profiles and reviewed transfers.
+              </p>
+              <a
+                className="primary"
+                href="/signin-with-chatgpt?return_to=/"
+                target="_top"
+              >
+                Open Porti
+                <ArrowRight size={16} />
+              </a>
+            </section>
+          ) : (
+            <>
+              {chatWorkflow&&openChat?<section className="sc-panel"><h2>{chatWorkflow} is open in Porti chat.</h2><p>Complete your review in the chat panel.</p></section>:renderFeature(view)}
             </>
           )}
           <footer className="sc-footer">
@@ -2114,7 +2145,11 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         </main>
       </div>
       <PortiCompanion
-        swapPanel={<Swaps requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} inline />}
+        workflow={chatWorkflow}
+        workflowPanel={chatWorkflow?renderFeature(chatWorkflow,true):null}
+        onWorkflow={openChatWorkflow}
+        onCloseWorkflow={()=>{setChatWorkflow("");chatConfirmation.current=null;}}
+        chatDraft={chatDraft}
         showHint={view === "Overview" || view === "Ask Porti"}
         open={openChat && walletLocation !== "modal"}
         setOpen={setOpenChat}
@@ -2127,8 +2162,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
             onClose={() => setWalletLocation(null)}
             onWalletOptions={() => {
               setWalletLocation(null);
-              setOpenChat(false);
-              go("Wallets");
+              openChatWorkflow("Wallets");
             }}
             onUse={useEmbeddedWallet}
             onRequestOpen={() => {
@@ -2150,19 +2184,13 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         busy={!!busy || restoringWallet}
         ready={!!p.aiConfigured}
         sample={sample}
-        onSettings={() => {
-          setOpenChat(false);
-          go("Connections");
-        }}
-        onWallets={() => {
-          setOpenChat(false);
-          go("Wallets");
-        }}
-        onNavigate={screen=>{if(["Swap","Stake NEAR","Buy NEAR","Markets","Transfers"].includes(screen)){setOpenChat(false);go(screen)}}}
+        onSettings={() => openChatWorkflow("Connections")}
+        onWallets={() => openChatWorkflow("Wallets")}
+        onNavigate={openChatWorkflow}
         onReport={openReport}
         drafts={sample ? [] : p.drafts}
         onApproveTransfer={(d) => signTransfer(d, true)}
-        onTransfer={openDraft}
+        onTransfer={openModalDraft}
         contextToken={contextToken}
         setContextToken={setContextToken}
         error={error}

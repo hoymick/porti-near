@@ -10,7 +10,7 @@ function harness({account='alice.near',reject=false}={}) {
  const draft={id:'one',sender:'alice.near',recipient:'agent.near',token:'near',amount:'0.5',symbol:'NEAR',status:'awaiting_review',expiresAt:Date.now()+60000};
  const p={messages:[{role:'assistant',cards:[{type:'transfer',draft:{...draft}}]}],drafts:[draft]};
  const calls=[],errors=[],modals=[];
- const deps={draft,reviewed:false,sample:false,walletAccount:'alice.near',guard:{current:false},p,latestChatTransfer,
+ const deps={draft,reviewed:false,sample:false,walletAccount:'alice.near',guard:{current:false},p,latestChatTransfer,chatTransfer:()=>latestChatTransfer(p.messages,p.drafts,"alice.near"),
   setBusy:()=>{},setError:e=>errors.push(e),setMessage:()=>{},setDraft:d=>modals.push(d),setReceiptHash:()=>{},
   requireSigningWallet:async()=>({getAccounts:async()=>[{accountId:account}],signAndSendTransaction:async()=>{calls.push('wallet');if(reject)throw Error('User cancelled');return {transaction:{hash:'hash'}}}}),
   request:async input=>{calls.push(input.action);if(input.action==='validate-draft')return {draft:{...draft,status:'wallet_requested',transaction:{receiverId:draft.recipient}}};return {}},
