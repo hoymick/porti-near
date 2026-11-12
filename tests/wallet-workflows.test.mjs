@@ -1,3 +1,4 @@
+import {swapProgress} from '../lib/transaction-progress.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,11 +12,14 @@ import { acquireWalletConnection, walletChatState, walletSetupResult } from '../
 const hookCode=ts.transpileModule(fs.readFileSync('app/use-chat-confirmation.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace(/^import[\s\S]*?;\s*$/gm,'').replace('export default function','function');
 const useChatConfirmation=new Function('useRef','useEffect',hookCode+';return useChatConfirmation;')(React.useRef,React.useEffect);
 
+const monitorCode=ts.transpileModule(fs.readFileSync('app/use-transaction-monitor.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText.replace(/^import[\s\S]*?;\s*$/gm,'').replace('export default function','function');
+const useTransactionMonitor=new Function('useRef','useEffect',monitorCode+';return useTransactionMonitor;')(React.useRef,React.useEffect);
+
 function component(file, name) {
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.React },
   }).outputText.replace(/^import[\s\S]*?;\s*$/gm, '').replace('export default function', 'function');
-  return new Function('React', 'useState', 'useEffect', 'useRef', 'useId', 'swapChains', 'decimal', 'useChatConfirmation', code + '\nreturn ' + name)(React, React.useState, React.useEffect, React.useRef, React.useId, swapChains, decimal, useChatConfirmation);
+  return new Function('React', 'useState', 'useEffect', 'useRef', 'useId', 'swapChains', 'decimal', 'useChatConfirmation', 'useTransactionMonitor', 'swapProgress', code + '\nreturn ' + name)(React, React.useState, React.useEffect, React.useRef, React.useId, swapChains, decimal, useChatConfirmation, useTransactionMonitor, swapProgress);
 }
 
 test('a signed-in wallet remains selected in swap and staking views while the signer is unavailable', () => {
