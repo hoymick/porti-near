@@ -1,4 +1,6 @@
 "use client";
+import { acquireReviewedWallet, reviewSenderAllowed } from "../lib/review-wallet.mjs";
+import { vaultStore } from "../lib/local-wallet-store.mjs";
 import {isTransferApproval, latestChatTransfer} from '../lib/chat-transfer-approval.mjs';
 import {chatWorkflows,isChatCancellation} from '../lib/chat-workflows.mjs';
 import {assertWalletTransactionSupported,transferSigningError} from '../lib/wallet-transaction-support.mjs';
@@ -159,7 +161,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     setWalletLocation(null);chatConfirmation.current=null;setChatDraft(null);setChatWorkflow(screen);setOpenChat(true);
   }
   function showChatDraft(d:any){chatConfirmation.current=null;setChatWorkflow("");setChatDraft(d);setOpenChat(true);request().then(accept).catch(e=>setError(e.message));}
-  function chatTransfer(){return latestChatTransfer(chatDraft?[{role:"assistant",cards:[{type:"transfer",draft:chatDraft}]}]:p.messages,p.drafts,walletAccount);}
+  const internalSigners = useRef(new Map<string, any>());
+  function chatTransfer(){return latestChatTransfer(chatDraft?[{role:"assistant",cards:[{type:"transfer",draft:chatDraft}]}]:p.messages,p.drafts,walletAccount,Date.now(),p.walletRoles);}
   const transferRequest = useRef({
     id: browserRequestId(),
     expiresAt: Date.now() + 180000,
@@ -467,14 +470,30 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
   }
   async function requireSigningWallet(expectedAccount = walletAccount) {
     if (!nearAccountOK(expectedAccount)) throw new Error("Select a NEAR wallet first.");
-    const connected = await acquireWalletConnection(await ensureConnector(), {
-      current: wallet ? { wallet, account: walletAccount } : null,
+    const signingWallet = await acquireReviewedWallet({
       expectedAccount,
+      candidates: [wallet, internalSigners.current.get(expectedAccount)],
+      localAccount: async () => {
+        if (expectedAccount !== p.walletRoles?.agent?.account) return null;
+        const response = await fetch("/api/porti/embedded-wallet", { cache: "no-store" });
+        const status: any = await response.json();
+        if (!response.ok) throw new Error("Could not check your device wallet. Open Wallets and unlock it before approving.");
+        if (!status.localScope) return null;
+        const record: any = await vaultStore(status.localScope, "read");
+        return record?.vault?.account || null;
+      },
+      openLocal: () => { setWalletLocation("chat"); setOpenChat(true); },
+      acquireExternal: async () => {
+        const connection = await acquireWalletConnection(await ensureConnector(), {
+          current: wallet ? { wallet, account: walletAccount } : null, expectedAccount,
+        });
+        if (!connection) throw new Error("Open the reviewed sender wallet to approve.");
+        return connection.wallet;
+      },
     });
-    if (!connected) throw new Error("Open your wallet to approve this action.");
-    setWallet(connected.wallet);
-    setWalletAccount(connected.account);
-    return connected.wallet;
+    setWallet(signingWallet);
+    setWalletAccount(expectedAccount);
+    return signingWallet;
   }
   async function useEmbeddedWallet(w: any) {
     if (guard.current || sample) return false;
@@ -483,9 +502,15 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       const accounts = await w.getAccounts(), account = accounts[0]?.accountId;
       if (!nearAccountOK(account)) throw Error("Select a valid NEAR mainnet wallet before verifying.");
       if(account === p.walletRoles?.main?.account)throw Error("Use a different account from your main wallet for the agent role.");
+      if (p.walletRoles?.agent?.account === account && p.walletRoles.agent.verifiedAt) {
+        internalSigners.current.set(account, w); setWallet(w); setWalletAccount(account);
+        setWalletLocation(null); setOpenChat(true);
+        setMessage("Your verified agent wallet is selected. Return to the review and approve when ready. Nothing has been sent.");
+        return true;
+      }
       const d=await request({action:"wallet-challenge",role:"agent",account,proofMode:w.proofMode}), c=d.challenge;
       const proof=await w.signMessage({message:c.message,recipient:c.recipient,nonce:Uint8Array.from(atob(c.nonce),x=>x.charCodeAt(0)),network:"mainnet",signerId:account});
-      const done=await request({action:"wallet-verify",role:"agent",proof});accept(done);setWallet(w);setWalletAccount(account);setMessage(done.message);return true;
+      const done=await request({action:"wallet-verify",role:"agent",proof});accept(done);internalSigners.current.set(account,w);setWallet(w);setWalletAccount(account);setMessage(done.message);return true;
     }catch(e:any){setError(e.message||"Internal wallet ownership verification failed.");return false}finally{guard.current=false;setBusy("")}
   }
   async function sendChat(text: string, imageId?: string) {
@@ -614,7 +639,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
   }
   async function signTransfer(selected = draft, inChat = false) {
     const review = selected;
-    if (sample || !walletAccount || (!inChat && !reviewed) || !review || review.sender !== walletAccount || review.status !== "awaiting_review" || Date.now() >= review.expiresAt || guard.current) return false;
+    if (sample || !walletAccount || (!inChat && !reviewed) || !review || !reviewSenderAllowed(review, walletAccount, p.walletRoles) || review.status !== "awaiting_review" || Date.now() >= review.expiresAt || guard.current) return false;
     if (inChat && chatTransfer()?.id !== review.id) return false;
     guard.current = true;
     setBusy("wallet-approval");
@@ -2186,6 +2211,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         messages={sample ? [] : p.messages}
         onSend={sendChat}
         walletAccount={walletAccount}
+        walletRoles={p.walletRoles || {}}
         busy={!!busy || restoringWallet}
         ready={!!p.aiConfigured}
         sample={sample}
@@ -2479,7 +2505,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     expired ||
                     draft.status !== "awaiting_review" ||
                     !walletAccount ||
-                    walletAccount !== draft.sender
+                    !reviewSenderAllowed(draft, walletAccount, p.walletRoles)
                   }
                 >
                   <Wallet size={16} />
@@ -2487,7 +2513,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                     ? "Waiting for wallet…"
                     : "Approve in my NEAR wallet"}
                 </button>
-                {(!walletAccount || walletAccount !== draft.sender) && (
+                {(!walletAccount || !reviewSenderAllowed(draft, walletAccount, p.walletRoles)) && (
                   <button
                     className="secondary"
                     disabled={!!busy}
