@@ -1,0 +1,32 @@
+.ussd-sim-layout{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:28px;align-items:start;margin-top:18px}
+.ussd-phone{position:relative;background:#1d2b23;border:3px solid #0c1510;border-radius:34px;padding:34px 18px 22px;box-shadow:5px 5px 0 #0c1510;max-width:300px;width:100%}
+.ussd-phone-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);font:700 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;color:#1d2b23;background:#00ec97;padding:4px 8px;border-radius:999px}
+.ussd-screen{background:#cfe9d6;color:#0c1510;border:3px solid #0c1510;border-radius:10px;min-height:220px;padding:12px;display:flex;flex-direction:column;gap:8px;font:14px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+.ussd-screen pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}
+.ussd-screen .ussd-muted{margin:auto 0;text-align:center;color:#2f4a39}
+.ussd-entry{font:inherit;background:#fff;color:#0c1510;border:2px solid #0c1510;border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+.ussd-softkeys{display:flex;justify-content:space-between;margin-top:auto;gap:8px}
+.ussd-softkeys button{font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:none;border:none;color:#0c1510;padding:6px 4px;cursor:pointer;text-decoration:underline}
+.ussd-softkeys button:only-child{margin-left:auto}
+.ussd-softkeys button:disabled{opacity:.4;cursor:default}
+.ussd-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 12px}
+.ussd-controls button{display:grid;place-items:center;height:38px;border-radius:999px;border:2px solid #0c1510;cursor:pointer;color:#fff;background:#3b5145}
+.ussd-controls .ussd-call{background:#16a34a}
+.ussd-controls .ussd-end{background:#dc2626}
+.ussd-controls button:disabled{opacity:.45;cursor:default}
+.ussd-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ussd-keypad button{height:42px;border-radius:12px;border:2px solid #0c1510;background:#e9f3ec;color:#0c1510;font:700 18px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}
+.ussd-keypad button:disabled{opacity:.55;cursor:default}
+.ussd-keypad button:not(:disabled):active,.ussd-controls button:not(:disabled):active{transform:translateY(1px)}
+.ussd-side label{display:grid;gap:6px;font-weight:700}
+.ussd-side input{font:16px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;padding:8px 10px;border:2px solid currentColor;border-radius:8px;max-width:240px}
+.ussd-side input[aria-invalid=true]{border-color:#dc2626}
+.ussd-side ol{padding-left:20px;display:grid;gap:6px}
+@media (max-width:720px){.ussd-sim-layout{grid-template-columns:1fr}.ussd-phone{margin:0 auto}}
+html[data-porti-theme=dark] .ussd-phone{background:#0c1510;border-color:#486052;box-shadow:4px 4px 0 #080f0a}
+html[data-porti-theme=dark] .ussd-side input{background:#19271f;color:#e6f2ea}
+/* The phone screen keeps its own LCD look in every theme: override global pre/p styles. */
+.near-app .ussd-sim .ussd-screen pre{background:none;border:0;box-shadow:none;padding:0;margin:0;color:#0c1510;font:15px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+.near-app .ussd-sim .ussd-screen .ussd-muted{color:#2f4a39!important}
+.ussd-side h3{margin:22px 0 8px}
+.ussd-side .sc-fine{margin:8px 0 0}
