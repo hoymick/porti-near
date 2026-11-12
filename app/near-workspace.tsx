@@ -549,6 +549,10 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     if (isTransferApproval(text)) {
       const review = !imageId && chatTransfer();
       if (!review) {
+        const shown=chatDraft||p.messages.at(-1)?.cards?.find((c:any)=>c.type==="transfer")?.draft;
+        const saved=shown&&p.drafts.find((d:any)=>d.id===shown.id);
+        if(saved?.status==="finalized"){setMessage("This transfer is already complete and verified. Open its receipt below; no second payment was requested.");return true;}
+        if(saved&&["wallet_requested","submitted"].includes(saved.status)){setMessage("Wallet approval was already requested for this transfer. Check the original outcome; no second payment was requested.");return true;}
         setError("No active transfer review in the latest reply for this wallet. Prepare a fresh review, then approve its exact details.");
         return false;
       }
