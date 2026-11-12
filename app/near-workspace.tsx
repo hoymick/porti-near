@@ -155,7 +155,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
   },[]);
   function openChatWorkflow(screen:string){
     if(!chatWorkflows.includes(screen))return;
-    chatConfirmation.current=null;setChatDraft(null);setChatWorkflow(screen);setOpenChat(true);
+    setWalletLocation(null);chatConfirmation.current=null;setChatDraft(null);setChatWorkflow(screen);setOpenChat(true);
   }
   function showChatDraft(d:any){chatConfirmation.current=null;setChatWorkflow("");setChatDraft(d);setOpenChat(true);request().then(accept).catch(e=>setError(e.message));}
   function chatTransfer(){return latestChatTransfer(chatDraft?[{role:"assistant",cards:[{type:"transfer",draft:chatDraft}]}]:p.messages,p.drafts,walletAccount);}
@@ -2162,8 +2162,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
             onClose={() => setWalletLocation(null)}
             onWalletOptions={() => {
               setWalletLocation(null);
-              setOpenChat(false);
-              go("Wallets");
+              openChatWorkflow("Wallets");
             }}
             onUse={useEmbeddedWallet}
             onRequestOpen={() => {
