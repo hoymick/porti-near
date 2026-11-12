@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import useChatConfirmation from './use-chat-confirmation';
-async function api(body?:any){const r=await fetch('/api/porti/swaps',{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined,cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error?.message||'Swap request failed.');return d;}
+async function api(body?:any){const r=await fetch('/api/porti/swaps',{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined,cache:'no-store'});const d:any=await r.json();if(!r.ok)throw Error(d.error?.message||'Swap request failed.');return d;}
 export default function ChatSwapReview({card,active,sample,register,requireWallet}:{card:any,active:boolean,sample:boolean,register:any,requireWallet:(sender?:string)=>Promise<any>}){
  const [order,setOrder]=useState<any>(card.order||null),[registration,setRegistration]=useState<any>(card.registration||null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[hash,setHash]=useState(''),[now,setNow]=useState(Date.now()),[dismissed,setDismissed]=useState(false);const lock=useRef(false);
  const recipe=card.recipe;
