@@ -99,12 +99,13 @@ const when = (n: any) =>
     : "Not checked";
 const accountLabel = (a: string) =>
   a?.length > 26 ? `${a.slice(0, 13)}…${a.slice(-8)}` : a;
-async function request(body?: any) {
+async function request(body?: any, signal?: AbortSignal) {
   const r = await fetch("/api/porti", {
     method: body ? "POST" : "GET",
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    signal,
   });
   const d: any = await r.json();
   if (!r.ok)
@@ -151,6 +152,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     [profileConsent, setProfileConsent] = useState(false);
   const [chatWorkflow,setChatWorkflow]=useState("");
   const [chatDraft,setChatDraft]=useState<any>(null);
+  const chatRequest=useRef<{controller:AbortController,requestId:string}|null>(null);
   const chatConfirmation=useRef<any>(null);
   const registerChatConfirmation=useCallback((action:any,previous?:any)=>{
     if(action)chatConfirmation.current=action;
@@ -244,17 +246,26 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
     setBusy(body.action);
     setError("");
     setMessage("");
+    const turn=body.action==="chat"?{controller:new AbortController(),requestId:body.requestId}:null;
+    if(turn)chatRequest.current=turn;
     try {
-      const d = await request(body);
+      const d = await request(body,turn?.controller.signal);
+      if(turn?.controller.signal.aborted)return;
       accept(d);
       if (d.message) setMessage(d.message);
       return d;
     } catch (e: any) {
-      setError(e.message);
+      if(!turn?.controller.signal.aborted)setError(e.message);
     } finally {
-      guard.current = false;
-      setBusy("");
+      if(!turn||chatRequest.current===turn){chatRequest.current=null;guard.current = false;setBusy("");}
     }
+  }
+  async function stopMiniChat(){
+    const turn=chatRequest.current;if(!turn)return;
+    chatRequest.current=null;turn.controller.abort();setBusy("stopping-chat");setError("");
+    try{await request({action:"cancel-chat",requestId:turn.requestId});setMessage("Reply stopped. You can edit or send a new message. Tools already started may still finish; wallet transactions are not cancelled.");}
+    catch(e:any){setError("Stopped waiting for the reply, but the server could not confirm cancellation. "+e.message);}
+    finally{guard.current=false;setBusy("");}
   }
   const go = navigateFeature;
   function navigateFeature(v: string) {
@@ -2218,6 +2229,8 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         statusMessage={message}
         messages={sample ? [] : p.messages}
         onSend={sendChat}
+        onStop={stopMiniChat}
+        canStop={busy==="chat"}
         onClear={clearMiniChat}
         walletAccount={walletAccount}
         walletRoles={p.walletRoles || {}}

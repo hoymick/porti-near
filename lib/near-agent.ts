@@ -1,3 +1,4 @@
+import {assertChatActive} from './chat-cancellation.mjs';
 import { nearAICompletion } from "./near-ai.mjs";
 const chatWorkflows = ["Swap","Stake NEAR","Buy NEAR","Transfers","Wallets","Porti Care","Markets","Investigate token","Track wallet","Rug Guard","Watchlist","Alerts","Porti Apps","Phone pocket","Profile","Friends","Telegram","Connections","System status"];
 import { createRheaPriceLookup } from "./research-price.mjs";
@@ -171,6 +172,7 @@ export async function nearChat(id: string, input: any) {
   const intentState = await mutate(id, (s) => {
     s.porti ??= initialPorti();
     const p = s.porti;
+    assertChatActive(p,input.requestId);
     const prior = p.messages.find((m: any) => m.requestId === input.requestId && m.role === "assistant");
     if (prior) return { prior };
     transferTurn = transferChatIntent(input.message, p.pendingChatTransfer, { wallet: input.wallet, roles: p.walletRoles, imageId: input.imageId });
@@ -251,6 +253,7 @@ export async function nearChat(id: string, input: any) {
     const reply = { id: crypto.randomUUID(), requestId: input.requestId, role: "assistant", content, cards, createdAt: Date.now(), provider: "Porti" };
     const saved = await mutate(id, (state) => {
       state.porti ??= initialPorti();
+      assertChatActive(state.porti,input.requestId);
       const messages = state.porti.messages;
       const existing = messages.find((m: any) => m.requestId === input.requestId && m.role === "assistant");
       if (existing) return existing;
@@ -265,6 +268,7 @@ export async function nearChat(id: string, input: any) {
   if(buy){
     let reply:any;
     await mutate(id,s=>{s.porti??=initialPorti();const p=s.porti;reply=p.messages.find((m:any)=>m.requestId===input.requestId&&m.role==="assistant");if(reply)return;
+      assertChatActive(p,input.requestId);
       p.messages.push({id:crypto.randomUUID(),requestId:input.requestId,role:"user",content:input.message,imageId:input.imageId||null,createdAt:Date.now()});
       reply={id:crypto.randomUUID(),requestId:input.requestId,role:"assistant",content:`Let's prepare a $${buy.amount} USD NEAR purchase. Choose card or Apple Pay below, review your destination wallet, then continue to MoonPay's secure checkout. Availability and fees are determined there. No payment has been made.`,cards:[{type:"buy-near",amount:buy.amount}],createdAt:Date.now(),provider:"Porti purchase flow"};p.messages.push(reply);p.messages=p.messages.slice(-100);
     });return {reply,cards:reply.cards};
@@ -289,6 +293,7 @@ export async function nearChat(id: string, input: any) {
   await mutate(id, (s) => {
     s.porti ??= initialPorti();
     const p = s.porti;
+    assertChatActive(p,input.requestId);
     existing = p.messages.find(
       (m: any) => m.requestId === turnId && m.role === "assistant",
     );
@@ -357,6 +362,7 @@ export async function nearChat(id: string, input: any) {
       : "",
       calls = 0;
     for (let round = 0; !greeting && round < 2; round++) {
+      assertChatActive((await portiConfig(id,"state")).p,turnId);
       let d;
       try {
         d = await nearAICompletion(config.aiKey, {
@@ -393,6 +399,7 @@ export async function nearChat(id: string, input: any) {
         tool_calls: selected,
       });
       for (const call of selected) {
+        assertChatActive((await portiConfig(id,"state")).p,turnId);
         calls++;
         let result: any;
         try {

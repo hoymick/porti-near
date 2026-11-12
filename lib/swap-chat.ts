@@ -1,3 +1,4 @@
+import {assertChatActive} from './chat-cancellation.mjs';
 import {swapTokens,swapAction} from './swaps';
 import {swapChatIntent} from './swap-chat-intent.mjs';
 import {portiConfig,initialPorti} from './near-services';
@@ -17,7 +18,7 @@ export async function swapChat(id:string,input:any){
  if(!/^[a-zA-Z0-9-]{10,80}$/.test(input.requestId))throw new DomainError('INVALID_CHAT','Retry from a new chat message.');
  const config=await portiConfig(id,'state'),intent=swapChatIntent(input.message,{wallet:input.wallet,roles:config.p.walletRoles,imageId:input.imageId});
  let prior:any;
- await mutate(id,s=>{s.porti??=initialPorti();const p=s.porti;prior=p.messages.find((m:any)=>m.requestId===input.requestId&&m.role==='assistant');if(prior)return;if(p.chatLock&&Date.now()-p.chatLock.at<300000)throw new DomainError('CHAT_BUSY','Porti is finishing another request.');p.chatLock={id:input.requestId,at:Date.now()};p.messages.push({id:crypto.randomUUID(),requestId:input.requestId,role:'user',content:input.message,createdAt:Date.now()});});
+ await mutate(id,s=>{s.porti??=initialPorti();const p=s.porti;assertChatActive(p,input.requestId);prior=p.messages.find((m:any)=>m.requestId===input.requestId&&m.role==='assistant');if(prior)return;if(p.chatLock&&Date.now()-p.chatLock.at<300000)throw new DomainError('CHAT_BUSY','Porti is finishing another request.');p.chatLock={id:input.requestId,at:Date.now()};p.messages.push({id:crypto.randomUUID(),requestId:input.requestId,role:'user',content:input.message,createdAt:Date.now()});});
  if(prior)return {reply:prior,cards:prior.cards};
  const cards:any[]=[],steps:any[]=[];let content='';
  try{

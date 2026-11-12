@@ -4,3 +4,5 @@
 .porti-chat-workflow .sc-page-heading h1{font-size:1.5rem}.porti-chat-workflow h2{font-size:1.25rem}.porti-chat-workflow .sc-buttons{flex-wrap:wrap;gap:8px}.porti-chat-workflow code,.porti-chat-workflow strong{overflow-wrap:anywhere}.porti-chat-workflow input,.porti-chat-workflow select,.porti-chat-workflow textarea{max-width:100%;box-sizing:border-box}.porti-chat-workflow button{white-space:normal}.porti-chat-workflow .sc-page-heading{margin:16px 0}
 
 .porti-clear-confirm{border:1px solid currentColor;border-radius:12px;padding:14px;margin:12px 16px}.porti-clear-confirm p{font-size:12px;line-height:1.5;margin:0 0 12px}
+
+.porti-chat-compose .porti-stop-reply{display:flex;align-items:center;justify-content:center;gap:6px;min-width:76px;min-height:44px;padding:8px 12px;font:inherit;font-size:12px;font-weight:700}.porti-stop-reply:focus-visible{outline:3px solid currentColor;outline-offset:3px}
