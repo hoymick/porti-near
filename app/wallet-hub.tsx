@@ -1,7 +1,7 @@
 'use client';
 import React, {useState} from 'react';
 
-export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;onConnect:(role:string,change?:boolean)=>void;onUnlink:(role:string)=>void;onFund:(token:string,amount:string)=>Promise<void>;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}) {
+export default function WalletHub({roles,account,signingAvailable,onConnect,onUnlink,onFund,onTransfer,onCreateInternal,walletError,sample,busy}:{roles:any;account:string;signingAvailable:boolean;onConnect:(role:string,change?:boolean)=>void;onUnlink:(role:string)=>void;onFund:(token:string,amount:string)=>Promise<void>;onTransfer:()=>void;onCreateInternal:()=>void;walletError:string;sample:boolean;busy:boolean}) {
   const [copiedAddress,setCopiedAddress] = useState('');
   const [copyError,setCopyError] = useState('');
   const [depositToken,setDepositToken] = useState('near');
@@ -25,7 +25,7 @@ export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTra
       <p>Create a device wallet in Porti, or connect a wallet you already use. Choose an account below to receive NEAR or prepare a transfer.</p>
       <div className="wallet-overview" aria-label="Selected wallet">
         <span className="wallet-network">NEAR mainnet</span>
-        <span>{account ? 'Selected for signing' : 'Connect or unlock to get started'}</span>
+        <span>{account ? (signingAvailable?'Wallet provider ready':'Signed-in wallet · shared across Porti') : 'Connect or unlock to get started'}</span>
         <code>{account || 'No wallet selected'}</code>
       </div>
       <div className="sc-buttons">
@@ -59,7 +59,7 @@ export default function WalletHub({roles,account,onConnect,onUnlink,onFund,onTra
             <button className={role==='main'?'primary':'secondary'} disabled={busy||sample} onClick={()=>onConnect(role,selected)}>{selected ? 'Change' : linked ? 'Select' : 'Connect'} {role} wallet</button>
           </div>
           {linked&&<>
-            <p className="sc-fine">{selected?'Ready for your wallet approvals.':'Reconnect or unlock this account when you want to sign.'}</p>
+            <p className="sc-fine">{selected?'Selected across Porti. Your wallet opens for transaction approvals.':'Select this account when you want to sign.'}</p>
             <section className="wallet-deposit" aria-label={'Receive NEAR in '+role+' wallet'}>
               <div className="wallet-card-heading"><h3>Receive NEAR</h3><span className="wallet-network">NEAR mainnet</span></div>
               <p>Send native NEAR from your wallet or exchange to this address.</p>
