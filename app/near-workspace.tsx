@@ -1,6 +1,6 @@
 "use client";
 import {browserRequestId} from '../lib/browser-request-id.mjs';
-import { restoreWalletConnection } from '../lib/wallet-connection.mjs';
+import { acquireWalletConnection, restoreWalletConnection } from '../lib/wallet-connection.mjs';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -106,7 +106,8 @@ async function request(body?: any) {
     throw new Error(d.error?.message || "This request could not complete.");
   return d;
 }
-export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
+export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn: boolean }) {
+  const [signedIn, setSignedIn] = useState(initialSignedIn);
   const [view, setView] = useState("Overview"),
     [state, setState] = useState<any>(null),
     [profile, setProfile] = useState<any>(null),
@@ -317,7 +318,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if (!signedIn || !sessionAccount) return;
     let cancelled = false;
     (async () => {
-      const restored = await restoreWalletConnection(await ensureConnector(), sessionAccount);
+      const restored = await acquireWalletConnection(await ensureConnector(), { current: wallet ? { wallet, account: walletAccount } : null, expectedAccount: sessionAccount, restoreOnly: true });
       if (cancelled || !restored) return;
       setWallet(restored.wallet);
       setWalletAccount(restored.account);
@@ -358,8 +359,14 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
         network: "mainnet",
         signerId: account,
       });
-      await authApi({ action: "verify", challengeId: c.id, proof });
-      window.location.assign("/");
+      const done = await authApi({ action: "verify", challengeId: c.id, proof });
+      // Keep the actual signing provider alive when entering the workspace.
+      // A hard redirect discarded it and made every feature restore it again.
+      setWallet(w);
+      setWalletAccount(account);
+      setSessionAccount(done.account);
+      setSignedIn(true);
+      setRestoringWallet(false);
     } catch (e: any) {
       setError(e.message || "Sign-in was cancelled.");
     } finally {
@@ -379,7 +386,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     }
     window.location.assign("/");
   }
-  async function connect(role: string = "main") {
+  async function connect(role: string = "main", forceSelect = false, expectedAccount?: string) {
     if (sample) {
       setError("Switch to Live before connecting a wallet.");
       return;
@@ -389,18 +396,32 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     setBusy("connect");
     setError("");
     try {
-      await ensureConnector();
-      const w = await connector.current.connect();
-      const accounts = await w.getAccounts();
-      if (!nearAccountOK(accounts?.[0]?.accountId))
+      const connection = await acquireWalletConnection(await ensureConnector(), {
+        current: wallet ? { wallet, account: walletAccount } : null,
+        expectedAccount: forceSelect ? expectedAccount : expectedAccount || (role === "agent" ? p.walletRoles?.agent?.account : p.walletRoles?.main?.account || sessionAccount) || undefined,
+        forceSelect: forceSelect || (role === "agent" && !p.walletRoles?.agent?.account),
+      });
+      if (!connection) throw new Error("Connect your NEAR wallet to continue.");
+      const { wallet: w, account } = connection;
+      if (!nearAccountOK(account))
         throw new Error("Select a NEAR mainnet account.");
       setWallet(w);
-      setWalletAccount(accounts[0].accountId);
+      setWalletAccount(account);
+      if (role === "main" && account === sessionAccount) {
+        await authApi({ action: "restore-wallet" });
+        accept(await request());
+        setMessage("Your main wallet is connected across Porti.");
+        return;
+      }
+      if (p.walletRoles?.[role]?.account === account && p.walletRoles[role].verifiedAt) {
+        setMessage("Your verified wallet is selected across Porti.");
+        return;
+      }
       if (role === "main" || role === "agent") {
         const d = await request({
           action: "wallet-challenge",
           role,
-          account: accounts[0].accountId,
+          account,
         });
         const c = d.challenge;
         const proof = await w.signMessage({
@@ -408,7 +429,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
           recipient: c.recipient,
           nonce: Uint8Array.from(atob(c.nonce), (x) => x.charCodeAt(0)),
           network: "mainnet",
-          signerId: accounts[0].accountId,
+          signerId: account,
         });
         const done = await request({ action: "wallet-verify", role, proof });
         accept(done);
@@ -434,6 +455,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     }catch(e:any){setError(e.message||"Internal wallet ownership verification failed.");return false}finally{guard.current=false;setBusy("")}
   }
   async function sendChat(text: string, imageId?: string) {
+    if (restoringWallet) return false;
     if (sample) {
       setError("Switch to Live for actual NEAR AI chat.");
       return false;
@@ -494,7 +516,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     if (!d) return;
     try {
       const accounts = await wallet.getAccounts();
-      if (accounts[0]?.accountId !== walletAccount)
+      if (!accounts.some((a: any) => a.accountId === walletAccount))
         throw new Error(
           "Wallet account changed. Connect the selected account again.",
         );
@@ -544,7 +566,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
     setError("");
     try {
       const accounts = await wallet.getAccounts();
-      if (accounts[0]?.accountId !== draft.sender)
+      if (!accounts.some((a: any) => a.accountId === draft.sender))
         throw new Error("Connected wallet differs from the reviewed sender.");
       const verified = await request({
         action: "validate-draft",
@@ -794,7 +816,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
             </button>
             {signedIn ? (
               <button className="secondary" onClick={signOut} disabled={busy === "signout"} title={sessionAccount ? "Signed in as " + sessionAccount : undefined}>
-                {sessionAccount ? accountLabel(sessionAccount) + " · " : ""}Sign out
+                Sign out
               </button>
             ) : (
               <button className="primary" onClick={signInWithWallet} disabled={!!busy}>
@@ -1378,8 +1400,8 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       </p>
                     </section>
                   )}
-                  {view === "Profile" && !sample && <XConnect/>}
-                  {view === "Profile" && (
+                  {view === "Profile" && !restoringWallet && !sample && <XConnect/>}
+                  {view === "Profile" && !restoringWallet && (
                     <div className="sc-two-col">
                       <section className="sc-panel sc-form">
                         <span className="sc-eyebrow">YOUR PORTI IDENTITY</span>
@@ -1405,7 +1427,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                           </span>
                           <button
                             className="secondary"
-                            onClick={() => connect()}
+                            onClick={() => connect("main", !!walletAccount)}
                             disabled={!!busy || sample}
                           >
                             {walletAccount ? "Change" : "Connect wallet"}
@@ -1535,7 +1557,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       </section>
                     </div>
                   )}
-                  {view === "Transfers" && (
+                  {view === "Transfers" && !restoringWallet && (
                     <>
                       <div className="sc-two-col">
                         <section className="sc-panel sc-form">
@@ -1749,20 +1771,21 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       <h2>Switch to Live to inspect real system status.</h2>
                     </section>
                   )}
+                  {restoringWallet && ["Swap", "Stake NEAR", "Buy NEAR", "Wallets", "Porti Care", "Transfers", "Profile"].includes(view) && <section className="sc-panel" role="status">Restoring your shared NEAR wallet…</section>}
                   {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
-                  {view === "Swap" && <Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
-                  {view === "Buy NEAR" && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
+                  {view === "Swap" && !restoringWallet && <Swaps wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
+                  {view === "Buy NEAR" && !restoringWallet && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
                   {view === "Phone pocket" && <UssdSimulator />}
-                  {view === "Stake NEAR" && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
-                  {view === "Wallets" && (
+                  {view === "Stake NEAR" && !restoringWallet && <Staking wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
+                  {view === "Wallets" && !restoringWallet && (
                     <WalletHub
                       onCreateInternal={()=>setWalletLocation("modal")}
                       walletError={error}
                       roles={p.walletRoles || {}}
                       account={walletAccount}
                       sample={sample}
-                      busy={!!busy}
-                      onConnect={(role) => connect(role)}
+                      busy={!!busy || restoringWallet}
+                      onConnect={(role, change) => connect(role, change)}
                       onUnlink={(role) =>
                         act({ action: "wallet-unlink", role })
                       }
@@ -1788,7 +1811,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                       }}
                     />
                   )}
-                  {view === "Porti Care" && <Charity roles={p.walletRoles||{}} account={walletAccount} sample={sample} onConnect={()=>connect("main")} onDraft={openDraft}/>}
+                  {view === "Porti Care" && !restoringWallet && <Charity roles={p.walletRoles||{}} account={walletAccount} sample={sample} onConnect={()=>connect("main")} onDraft={openDraft}/>}
                   {view === "Friends" && <Friends sample={sample} onProfile={()=>setView("Profile")} />}
                   {view === "Telegram" && <TelegramSettings sample={sample} />}
                   {view === "Connections" && (
@@ -2086,7 +2109,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
         messages={sample ? [] : p.messages}
         onSend={sendChat}
         walletAccount={walletAccount}
-        busy={!!busy}
+        busy={!!busy || restoringWallet}
         ready={!!p.aiConfigured}
         sample={sample}
         onSettings={() => {
@@ -2395,7 +2418,7 @@ export default function NearWorkspace({ signedIn }: { signedIn: boolean }) {
                   <button
                     className="secondary"
                     disabled={!!busy}
-                    onClick={() => connect()}
+                    onClick={() => connect("main", true, draft.sender)}
                   >
                     Connect reviewed sender wallet
                   </button>

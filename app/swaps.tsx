@@ -14,7 +14,7 @@ export default function Swaps({wallet,account,onConnect,sample,inline=false}:{wa
  async function history(){const d=await api();setOrders(d.orders||[])}
  useEffect(()=>{if(!sample){catalog().catch(e=>setError(e.message));history().catch(e=>setError(e.message))}const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[sample]);
  async function run(fn:()=>Promise<void>){if(lock.current||sample)return;lock.current=true;setBusy(true);setError('');try{await fn()}catch(e:any){setError(e.message||'Swap action failed. Do not repeat a deposit when its outcome is unknown.')}finally{lock.current=false;setBusy(false);history().catch(()=>{})}}
- async function selectedWallet(sender=account){if(!wallet)throw Error('Connect your NEAR wallet.');const a=await wallet.getAccounts();if(a[0]?.accountId!==sender)throw Error('Connected wallet differs from the reviewed sender.');}
+ async function selectedWallet(sender=account){if(!wallet)throw Error('Connect your NEAR wallet.');const a=await wallet.getAccounts();if(!a.some((a:any)=>a.accountId===sender))throw Error('Connected wallet differs from the reviewed sender.');}
  const ready=order?.status==='wallet_requested',preview=order?.status==='preview';
  const [stableOnly,setStableOnly]=useState(false);
  const stableSymbol=(symbol:string)=>/^(USDC|USDT|DAI|USDS|USDE|USDP|PYUSD|EURC|FRAX|USD1|USDC\.E|USDT\.E)$/i.test(symbol);
