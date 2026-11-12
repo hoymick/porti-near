@@ -1,4 +1,5 @@
 "use client";
+import useTransactionMonitor from "./use-transaction-monitor";
 import { acquireReviewedWallet, reviewSenderAllowed } from "../lib/review-wallet.mjs";
 import { vaultStore } from "../lib/local-wallet-store.mjs";
 import {isTransferApproval, latestChatTransfer} from '../lib/chat-transfer-approval.mjs';
@@ -656,6 +657,11 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
       if(inChat)showChatDraft(d.draft);else openDraft(d.draft);
     }
   }
+  const pendingTransfer=(p.drafts||[]).find((d:any)=>d.status==='submitted'&&d.hash);
+  useTransactionMonitor(pendingTransfer?.id||'',!!pendingTransfer&&!sample&&!busy,
+    ()=>request({action:"record-transfer",draftId:pendingTransfer.id,hash:pendingTransfer.hash}),
+    done=>{if(guard.current)return;accept(done);if(done.receipt?.status==="finalized"){setMessage("Transfer complete: "+done.receipt.amount+" "+done.receipt.symbol+" sent to "+done.receipt.recipient+". Receipt verified.");sessionStorage.removeItem("porti-pending-draft");}},
+    setMessage);
   async function signTransfer(selected = draft, inChat = false) {
     const review = selected;
     if (sample || !walletAccount || (!inChat && !reviewed) || !review || !reviewSenderAllowed(review, walletAccount, p.walletRoles) || review.status !== "awaiting_review" || Date.now() >= review.expiresAt || guard.current) return false;
@@ -1694,10 +1700,10 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
                   )}
                   {restoringWallet && ["Swap", "Stake NEAR", "Buy NEAR", "Wallets", "Porti Care", "Transfers", "Profile"].includes(view) && <section className="sc-panel" role="status">Restoring your shared NEAR wallet…</section>}
                   {view === "Markets" && <Markets sample={sample} onSwap={()=>go("Swap")} onInvestigate={c=>{go("Investigate token");setAccount(c);setContextToken(c);investigate(undefined,"token",c)}}/>}
-                  {view === "Swap" && !restoringWallet && <Swaps onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
+                  {view === "Swap" && !restoringWallet && <Swaps onStatus={setMessage} onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")}/>}
                   {view === "Buy NEAR" && !restoringWallet && <section className="sc-panel"><BuyNear account={walletAccount} sample={sample} onConnect={()=>connect("main")}/></section>}
                   {view === "Phone pocket" && <UssdSimulator />}
-                  {view === "Stake NEAR" && !restoringWallet && <Staking onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
+                  {view === "Stake NEAR" && !restoringWallet && <Staking onStatus={setMessage} onConfirmation={inChat?registerChatConfirmation:undefined} requireWallet={requireSigningWallet} wallet={wallet} account={walletAccount} sample={sample} onConnect={()=>connect("main")} />}
                   {view === "Wallets" && !restoringWallet && (
                     <WalletHub
                       onCreateInternal={()=>setWalletLocation(inChat?"chat":"modal")}
@@ -2228,6 +2234,7 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
         }
         statusMessage={message}
         messages={sample ? [] : p.messages}
+        onTransactionStatus={setMessage}
         onSend={sendChat}
         onStop={stopMiniChat}
         canStop={busy==="chat"}

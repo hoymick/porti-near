@@ -37,3 +37,17 @@ test('same-chain swaps recheck receive-token registration before executable quot
  s.setRegistered(true);
  assert.equal((await s.swapAction('owner',{action:'fund',orderId:order.id})).transaction.receiverId,'wrap.near');
 });
+
+test('repeated status checks keep one deposit notification and return terminal state',async()=>{
+ const s=service(),{order}=await s.swapAction('owner',preview);
+ const ready=(await s.swapAction('owner',{action:'approve',orderId:order.id})).order;
+ await s.swapAction('owner',{action:'fund',orderId:order.id});
+ s.setStatus({status:'SUCCESS',quoteResponse:{quoteRequest:order.request,quote:{depositAddress:ready.depositAddress}},swapDetails:{destinationChainTxHashes:[{hash:'0x'+'a'.repeat(64)}]}});
+ const hash='1'.repeat(44);
+ const first=await s.swapAction('owner',{action:'status',orderId:order.id,hash});
+ const second=await s.swapAction('owner',{action:'status',orderId:order.id,hash});
+ assert.equal(first.status,'provider_success');assert.equal(second.status,'provider_success');
+ assert.equal(s.state.porti.swapOrders[0].status,'provider_success');
+ assert.equal(s.calls.filter(c=>c.url.endsWith('/deposit/submit')).length,1);
+ assert.equal(s.calls.filter(c=>c.body?.dry===false).length,1);
+});
