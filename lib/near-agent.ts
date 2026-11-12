@@ -212,6 +212,10 @@ export async function nearChat(id: string, input: any) {
     });
     return { reply: saved.result, cards: saved.result.cards };
   }
+  if(!input.imageId&&/\b(?:buy|swap|exchange)\s+\d+(?:\.\d+)?\s+(?:native\s+)?near\b/i.test(input.message)&&/\.near\b/i.test(input.message)){
+    const {swapChat}=await import('./swap-chat');
+    return swapChat(id,input);
+  }
   const deposit = !input.imageId && input.message.trim().match(
     /^(?:please\s+)?deposit\s+(all|max|\d+(?:\.\d+)?)\s+near(?:\s+tokens?)?(?:\s+(?:in|from)\s+my\s+(?:connected|main)\s+wallet)?\s+(?:to|into)\s+(?:(?:my|the)\s+)?(?:(?:created|agent|device)\s+wallet)[.!]?$/i,
   );
