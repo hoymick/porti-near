@@ -48,6 +48,8 @@ export const charityDonations=sqliteTable('charity_donations',{draftId:text('dra
 
 // Porti Pocket over USSD. Phones map to a pocket account; sessions hold short-lived menu context.
 export const ussdPhones=sqliteTable('ussd_phones',{phone:text('phone').primaryKey(),pocketId:text('pocket_id').notNull(),ownerId:text('owner_id'),channel:text('channel').notNull(),pinHash:text('pin_hash'),pinFailures:integer('pin_failures').notNull().default(0),lockedUntil:integer('locked_until'),createdAt:integer('created_at').notNull()},t=>[index('ussd_phones_pocket').on(t.pocketId)]);
+// Every USSD send attempt, for "Last 3 sends" and later reconciliation.
+export const ussdSends=sqliteTable('ussd_sends',{id:text('id').primaryKey(),phone:text('phone').notNull(),pocketId:text('pocket_id').notNull(),receiverId:text('receiver_id').notNull(),username:text('username').notNull(),amount:text('amount').notNull(),status:text('status').notNull(),hash:text('hash'),createdAt:integer('created_at').notNull()},t=>[index('ussd_sends_phone').on(t.phone,t.createdAt)]);
 export const ussdSessions=sqliteTable('ussd_sessions',{sessionId:text('session_id').primaryKey(),phone:text('phone').notNull(),channel:text('channel').notNull(),state:text('state').notNull(),expiresAt:integer('expires_at').notNull()},t=>[index('ussd_sessions_expiry').on(t.expiresAt)]);
 
 // Sign in with a NEAR wallet: one-time NEP-413 challenges and hashed session tokens.

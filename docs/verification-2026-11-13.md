@@ -1,5 +1,11 @@
 # Verification checkpoint — 13 November 2026
 
+## Later phone-pocket update
+
+While preparing the demo, `71a56e0` and `7ee4c93` landed with PIN-confirmed USSD Send, Last 3 sends and Freeze. Those commits are preserved. A fresh local run on `7ee4c93` passed **262 app tests in 42 files**, 0 failures/skips. Typecheck passed and lint exited 0 with 0 errors / 592 warnings on the updated source. [Combined PR verification run](https://github.com/hoymick/porti-near/actions/runs/43418057875) also passed its Node 22 app job, including both builds. The prior detailed inspection below remains a dated observation of `80ca0eb`, not a claim that the new phone actions are absent. No real phone/carrier transfer or freeze was executed. The public default number was previously unlinked; SMS inbox and later reconciliation remain unfinished.
+
+## Original full production inspection
+
 Application baseline: [`80ca0eb3edfb6f268d220151d0272dc3affa70b7`](https://github.com/hoymick/porti-near/tree/80ca0eb3edfb6f268d220151d0272dc3affa70b7). [GitHub verification run](https://github.com/hoymick/porti-near/actions/runs/43303008502). Documentation/screenshot commits do not change this baseline's app logic.
 
 ## Automated and local evidence

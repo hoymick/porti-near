@@ -1,6 +1,6 @@
 # Porti submission demo
 
-Captured from the public deployment on **13 November 2026**, application baseline `80ca0eb`. These are actual browser screenshots. Fictional token data and paused AI are deliberately labelled. No transaction, payment, wallet export or message to another person was performed.
+Captured from the public deployment on **13 November 2026**, screenshot baseline `80ca0eb`. The later `7ee4c93` phone-pocket additions are reflected in the test count; no phone transaction is shown. These are actual browser screenshots. Fictional token data and paused AI are deliberately labelled. No transaction, payment, wallet export or message to another person was performed.
 
 **[Open the hosted demo](https://porti-near.hoymick240.workers.dev/)** → **Try demo**. No sign-in, email code, API key or funds needed for this sequence.
 
@@ -15,7 +15,7 @@ Captured from the public deployment on **13 November 2026**, application baselin
 | 21–33s | Scroll to Risk checks | Review concentration signals alongside missing checks. Unknown evidence stays unknown; this is not a safety verdict. |
 | 33–45s | Close report → open companion → Explore Porti → Stake NEAR | Workflows stay inside chat. Live reviews still need user wallet approval; walkthrough mode cannot submit a stake. |
 | 45–55s | Minimize chat → Porti Apps → Explore apps | Five curated read-only adapters bring NEAR contract tools into one interface. This screen shows adapter descriptions, not executed live calls. |
-| 55–65s | Verification end card | 245 app tests and 25 contract tests passed. Tests include mocks. Live provider access and funded settlement are separate acceptance steps. |
+| 55–65s | Verification end card | 262 app tests and 25 contract tests passed. Tests include mocks. Live provider access and funded settlement are separate acceptance steps. |
 
 The accompanying MP4 is a **captioned screenshot walkthrough**, not continuous screen capture or a recording of a live AI/financial transaction. The five original images below are also suitable for a screenshot-based demo post, with the hosted URL. Do not crop out fictional-data warnings or describe fixtures as mainnet evidence.
 

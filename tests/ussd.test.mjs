@@ -134,12 +134,12 @@ test("starting a new session removes expired ones", async () => {
 test("provider failures end the session with a plain message; unknown choices are refused", async () => {
   const { dial } = setup({ pocket: new DomainError("PROVIDER_UNAVAILABLE", "x", 503) });
   await dial("");
-  assert.match(await dial("1"), /^END Your pocket can't be read right now/);
+  assert.match(await dial("1"), /^END Your pocket can't be reached right now/);
   const other = setup();
   await other.dial("");
   assert.match(await other.dial("9"), /^END Invalid choice/);
   await other.dial("", { sessionId: "s2" });
-  assert.match(await other.dial("2", { sessionId: "s2" }), /^END This option is coming soon/);
+  assert.match(await other.dial("3", { sessionId: "s2" }), /^END No sends yet from this number\./);
 });
 
 test("every reply fits the USSD length limit", async () => {

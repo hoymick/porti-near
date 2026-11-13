@@ -47,7 +47,7 @@ Observed 13 November 2026; configuration may change after this checkpoint.
 | Optional Seams wallet | Provider runtime setup absent; free local wallet is separate. |
 | Porti Care | Needs two independent reviewer identities and R2 evidence before real campaigns/donations. |
 | Telegram | Maintenance endpoint returns `RUNNER_DISABLED`; unattended delivery not operational. Keep runner independently authorized. |
-| Phone pocket | Default public simulator number unlinked. Send / last-three sends / freeze and SMS inbox incomplete. Contract tests are not live phone-service acceptance. |
+| Phone pocket | Default public simulator number unlinked. Send, last-three sends and freeze are now implemented with PIN/replay controls; live phone acceptance remains unverified. SMS inbox and later reconciliation are still incomplete. |
 | Financial acceptance | No fresh funded transfer, swap, stake, purchase or donation. Provider access, compatible wallet signing and final outcomes need separate acceptance. |
 
 ## Run and verify from a clean checkout
@@ -81,7 +81,7 @@ cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
 ```
 
-**Verified baseline:** [`80ca0eb`](https://github.com/hoymick/porti-near/tree/80ca0eb3edfb6f268d220151d0272dc3affa70b7). All **245 app tests across 41 files** passed, including a fresh Node 22.22.2 repeat; **25 pocket-contract tests** passed in GitHub CI. Typecheck, both builds, Rust formatting and clippy passed. Lint exited 0 with **0 errors / 582 warnings**. Dependency audit: **7 moderate / 0 high / 0 critical** advisories in the tooling chain. Tests include mocked RPCs, wallets and providers; they are not an independent audit or funded acceptance. [Dated evidence](docs/verification-2026-11-13.md).
+**Verified baseline:** [`7ee4c93`](https://github.com/hoymick/porti-near/tree/7ee4c93d14f2232f073bd07caad8575f24d1849e). All **262 app tests across 42 files** passed locally after the phone-pocket updates and in Node 22 CI; **25 pocket-contract tests** passed in GitHub CI. Typecheck, both builds, Rust formatting and clippy passed. Lint exited 0 with **0 errors / 592 warnings**. Dependency audit: **7 moderate / 0 high / 0 critical** advisories in the tooling chain. Tests include mocked RPCs, wallets and providers; they are not an independent audit or funded acceptance. [Dated evidence](docs/verification-2026-11-13.md).
 
 ## Architecture and deployment
 

@@ -162,7 +162,8 @@ export default function UssdSimulator() {
           <ol>
             <li>Press the green call button.</li>
             <li>Reply <strong>1</strong> for Balance: what you can spend and how much of today’s limit is left.</li>
-            <li>Send, Last 3 sends and Freeze are coming next.</li>
+            <li>Call again and reply <strong>2</strong> to send: type a Porti username (<strong>bob</strong> on the local sandbox), an amount like <strong>0.05</strong>, then the PIN (<strong>1234</strong> on the local sandbox).</li>
+            <li>Reply <strong>3</strong> for your last 3 sends, or <strong>4</strong> to freeze the pocket. Only the main wallet can unfreeze it.</li>
           </ol>
           <h3>SMS inbox</h3>
           <p className="sc-fine">No messages yet. Codes and send receipts will appear here.</p>
