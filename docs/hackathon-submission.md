@@ -7,8 +7,8 @@ Updated 13 November 2026. This prepares assets and wording; it does not publish 
 - Public app: <https://porti-near.hoymick240.workers.dev/> — choose Try demo, no login needed.
 - Public repository: <https://github.com/hoymick/porti-near>.
 - [Five authentic screenshots, timed demo script and X post draft](demo/README.md).
-- [Reproduction commands](../README.md#run-and-verify-from-a-clean-checkout) and [dated verification](verification-2026-11-13.md).
-- Production branch: `cloudflare-standalone`. Default `main` must contain the tested app and these docs before final submission; verify the branch heads rather than assuming a previous sync remains current.
+- [Reproduction commands](../README.md#run-locally) and [dated verification](verification-2026-11-13.md).
+- Production branch: `cloudflare-standalone`. Default `main` contains the submission docs and newer testnet Pocket source. Verify both heads and the actual deployed commit; source and deployed capabilities can differ.
 
 ## Owner steps still required
 
@@ -34,6 +34,6 @@ Updated 13 November 2026. This prepares assets and wording; it does not publish 
 
 ## Description draft
 
-Porti is a friendly NEAR AI Cloud companion for token research and wallet-reviewed actions. It brings sampled holder evidence, charts, wallet identities and action preparation into one interface. The implementation integrates NEAR Intents / 1Click for supported native-NEAR-source swaps and Meta Pool for reviewed staking. Server checks bind the action's sender, amount, destination and review state; users retain wallet signing authority. Missing provider data and unresolved research checks stay visible. The hosted no-login walkthrough uses explicitly fictional data; automated checks passed 262 app and 25 contract tests, including mocked providers. Fresh funded settlement was not performed, and optional payment, media and social-provider setup gaps are documented.
+Porti is a friendly NEAR AI Cloud companion for token research and wallet-reviewed actions. It brings sampled holder evidence, charts, wallet identities and action preparation into one interface. The implementation integrates NEAR Intents / 1Click for supported native-NEAR-source swaps and Meta Pool for reviewed staking. Server checks bind the action's sender, amount, destination and review state; users retain wallet signing authority. Missing provider data and unresolved research checks stay visible. The hosted no-login walkthrough uses explicitly fictional data; latest local app checks passed 264 tests and earlier contract CI passed 25 tests, including mocked providers. Fresh funded settlement was not performed, and optional payment, media and social-provider setup gaps are documented.
 
 Do not claim audited security, complete token coverage, autonomous custody, guaranteed rug detection, implemented perps/lending/vaults, or successful live integrations absent from the verification evidence.

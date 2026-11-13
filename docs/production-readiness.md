@@ -1,4 +1,6 @@
-# Porti v0.9 — hardening and launch evidence
+# Porti v0.9 — historical hardening checkpoint
+
+> Historical release record. Current source scope, network split and evidence are in [README](../README.md), [setup](setup.md) and [13 November verification](verification-2026-11-13.md). Private-host assumptions and test/dependency counts below belong to that release; they are not current production claims.
 
 This release is a hardened private beta. It is not a certification that public deployment or funded use is safe. The Site remains owner-private. Real-account acceptance, an independent security review and a host-level recovery drill remain launch gates.
 

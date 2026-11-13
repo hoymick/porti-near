@@ -8,7 +8,7 @@ A small, capped NEAR account that a phone can spend from over USSD. The contract
 | 2 | Pocket key (Porti server, function-call key) | `send` within per-transaction and daily caps; `freeze`. |
 | 3 | Owner (main wallet, full-access key) | `withdraw` (also while frozen), `unfreeze`, `set_limits`, `freeze`. |
 
-**Blast radius:** the server holds a key that can call `send` on every pocket. If the server is compromised, each pocket can lose at most its remaining daily cap. The main wallet is never exposed.
+**Blast radius:** the server holds a key that can call `send` on every pocket. If the server is compromised, the contract bounds principal spending by each pocket’s remaining daily cap per UTC day, per-send cap and available balance. An attacker can spend again on later days until frozen/disabled or depleted, and function-call allowance can also be consumed. This is not a lifetime loss cap or an independent security audit. The restricted key does not grant main-wallet access.
 
 ## Contract (`contracts/pocket`)
 
@@ -88,9 +88,9 @@ Both channels check the chain ID of their RPC.
 
 `npm run pocket:sandbox` runs the same setup on a private local chain. It links `+999000001` (PIN `1234`), sets `@bob → bob.sandbox`, and writes the `PORTI_SIM_*` settings to `.dev.vars`. Restart `npm run dev` afterwards.
 
-## Service seam (Michael ↔ Jeff)
+## Proposed receipt-reconciliation interface (not implemented)
 
-Jeff's USSD code calls these functions. Michael owns them, built on existing Porti code.
+The following design is a future integration contract, not exported functions currently called by the USSD handler. Current submission waits for optimistic execution and records pending hashes; later FINAL receipt reconciliation remains unfinished.
 
 ```ts
 // Already exists: lib/near-profile.ts. Throws DomainError INVALID_USERNAME / USERNAME_NOT_FOUND.
@@ -114,7 +114,7 @@ reconcilePocketReceipt(draftId: string, hash: string): Promise<
 
 Success evidence for a pocket send: `final_execution_status === "FINAL"`, signer and receiver are both the pocket, the action is a `send` FunctionCall with the exact draft args, the logs contain the `send` event, the transfer receipt to `receiverId` succeeded, and there is **no** `send_failed` event.
 
-If the username's mapping `version` changed between the confirm screen and submission, refuse the send.
+The current implementation pins the resolved recipient at confirmation; it does not implement the proposed mapping-version reconciliation interface above.
 
 ## USSD endpoints
 
@@ -138,7 +138,6 @@ A local NEAR sandbox runs the real contract and the real one-transaction setup:
 npm run db:local -- migrate        # local D1 starts empty: apply migrations once
 npm run pocket:sandbox             # chain on 127.0.0.1:3030, creates alice / pocket.alice / bob,
                                    # links +999000001 -> pocket.alice.sandbox; keep it running
-echo 'PORTI_USSD_RPC=http://127.0.0.1:3030' >> .dev.vars
 npm run dev                        # restart after changing .dev.vars
 npm run pocket:check               # server key: in-cap send ok; over-cap, withdraw, set_limits refused
 curl -X POST http://127.0.0.1:5173/api/ussd/sim \
@@ -147,6 +146,6 @@ curl -X POST http://127.0.0.1:5173/api/ussd/sim \
   -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'   # balance
 ```
 
-A loopback `PORTI_USSD_RPC` skips the mainnet chain-ID check **in dev builds only**. Production builds compile that branch out, so they always require mainnet. Sandbox keys go to `.wrangler/pocket-sandbox.json`, which is gitignored and has `0600` permissions.
+A loopback `PORTI_SIM_RPC` skips the chain-ID check **in dev builds only**. Production simulator builds require testnet; live builds require mainnet. Sandbox keys go to `.wrangler/pocket-sandbox.json`, which is gitignored and has `0600` permissions.
 
 Verified on the sandbox: the setup batch leaves the pocket with only the server's function-call key (`send`, `freeze`). With that key, a 0.05 send succeeds, a 0.2 send is refused by the per-tx cap, `withdraw` and `set_limits` are refused by the key's method list, and attaching 1 yocto is refused for function-call keys. USSD Balance reflects the spend immediately.

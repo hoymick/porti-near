@@ -42,7 +42,7 @@ The old “Create a NEAR wallet” control was only a link to Meteor. It did not
 
 These values are public browser configuration. Private Gateway/operator credentials remain with the wallet infrastructure; never expose them through this route. If the service only offers a different release, upgrade the SDK and hosted service together and rerun acceptance rather than changing the version flag alone.
 
-Allow the exact application origin `https://wif-port-agent.catoptica-5751.chatgpt.site` in the environment's registration policies, Gateway CORS, framing and iframe messaging policies. Serve the provider's registration and WebAuthn prompts from a separate trusted HTTPS origin. Do not proxy that wallet origin through Porti or bypass TLS checks. Confirm passkey creation/get permissions and WASM/worker delivery under the production hosting policies. The wallet host must be configured for mainnet and sponsored named NEAR account registration, with sponsorship available. No public testnet sponsor or guessed production host is hardcoded.
+Allow the exact deployed application origin (currently `https://porti-near.hoymick240.workers.dev` for standalone) in the environment's registration policies, Gateway CORS, framing and iframe messaging policies. Serve the provider's registration and WebAuthn prompts from a separate trusted HTTPS origin. Do not proxy that wallet origin through Porti or bypass TLS checks. Confirm passkey creation/get permissions and WASM/worker delivery under the production hosting policies. The wallet host must be configured for mainnet and sponsored named NEAR account registration, with sponsorship available. No public testnet sponsor or guessed production host is hardcoded.
 
 ## User flow
 

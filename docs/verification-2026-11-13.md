@@ -1,5 +1,24 @@
 # Verification checkpoint — 13 November 2026
 
+## Full source and documentation review (latest checkpoint)
+
+Reviewed `main` application baseline [`b2975045dc97e7877fda5e38abcaafbb84b9aa7e`](https://github.com/hoymick/porti-near/tree/b2975045dc97e7877fda5e38abcaafbb84b9aa7e), including PR #59's separate public testnet Phone Pocket channel. Existing unrelated commits were preserved. This documentation review changes no application logic, credentials, audience or resource bindings.
+
+| Check repeated on this baseline | Result |
+| --- | --- |
+| App suite | **264 passed**, 0 failed/cancelled/skipped; Node 24.22.1 using existing locked dependencies |
+| Typecheck | `npm run check` passed |
+| Lint | Exit 0; **0 errors / 596 warnings** |
+| Regular build | `npm run build` passed |
+| Standalone build | Passed with the documented dummy D1 UUID; not deployed |
+| Dependency audit | **7 moderate / 0 high / 0 critical**; no packages/lockfile changed |
+| Public HTTP smoke from this executor | Root and private API attempts returned HTTP 403; no authenticated check performed and no conclusion about end-user availability inferred |
+| Rust contract | Earlier 25-test CI evidence retained below; not rerun in this docs-only review |
+
+The `main` source at this checkpoint is ahead of configured Worker branch `cloudflare-standalone` (`cb67499`). Testnet simulator support in source does not prove its settings are provisioned or that production has deployed it. No simulator send/freeze, mainnet transaction, actual phone call, user message, provider-key verification or database write was executed in this review.
+
+The earlier hosted configuration inventory below remains a dated observation. Runtime secret values were not read. Known source limitations include unfinished SMS/later Pocket reconciliation and stale health-screen metadata (`0.13.0` / owner-private wording despite public-beta source). The README and current setup guides distinguish mainnet wallet actions, testnet simulator actions, public wallet sessions and the original private Site updater.
+
 ## Later phone-pocket update
 
 While preparing the demo, `71a56e0` and `7ee4c93` landed with PIN-confirmed USSD Send, Last 3 sends and Freeze. Those commits are preserved. A fresh local run on `7ee4c93` passed **262 app tests in 42 files**, 0 failures/skips. Typecheck passed and lint exited 0 with 0 errors / 592 warnings on the updated source. [Combined PR verification run](https://github.com/hoymick/porti-near/actions/runs/43418057875) also passed its Node 22 app job, including both builds. The prior detailed inspection below remains a dated observation of `80ca0eb`, not a claim that the new phone actions are absent. No real phone/carrier transfer or freeze was executed. The public default number was previously unlinked; SMS inbox and later reconciliation remain unfinished.
@@ -50,4 +69,4 @@ Not implemented: built-in unstaking/exit, perps, lending or vaults. Top Traders 
 
 ## Submission evidence boundary
 
-Use the public walkthrough for no-funds judging and the exact [README commands](../README.md#run-and-verify-from-a-clean-checkout) for code reproduction. Do not turn “implemented,” “unit tested,” “configured,” “wallet popup opened” or “transaction hash returned” into a claim of completed financial settlement. A real funded demo needs separately observed final source and destination evidence.
+Use the public walkthrough for no-funds judging and the exact [README commands](../README.md#run-locally) for code reproduction. Do not turn “implemented,” “unit tested,” “configured,” “wallet popup opened” or “transaction hash returned” into a claim of completed financial settlement. A real funded demo needs separately observed final source and destination evidence.
