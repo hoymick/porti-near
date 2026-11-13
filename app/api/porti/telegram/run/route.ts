@@ -10,6 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 export async function GET() {
   try {
+    if ((env as any).PORTI_HOST_MODE === "cloudflare") return Response.json({error:{code:"RUNNER_DISABLED",message:"Standalone background runner is not configured."}},{status:403});
     const r = await env
       .DB!.prepare(
         "SELECT id,value FROM porti_runs WHERE id IN ('telegram','schedule')",
@@ -27,6 +28,7 @@ export async function GET() {
 }
 export async function POST(r: Request) {
   try {
+    if ((env as any).PORTI_HOST_MODE === "cloudflare") return Response.json({error:{code:"RUNNER_DISABLED",message:"Standalone background runner is not configured."}},{status:403});
     sameOrigin(r, { service: true });
     const input = await readJSON(r, 1000);
     if (!["run", "register-schedule"].includes(input.action))

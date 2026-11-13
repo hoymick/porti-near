@@ -1,3 +1,4 @@
+import {cancelChatTurn} from '../../../lib/chat-cancellation.mjs';
 import {
   owner,
   readWorkspace,
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
       result = await walletAction(id, input, new URL(request.url).origin);
     else if (["save-ai", "save-index", "save-rpc"].includes(action))
       result = await savePortiSettings(id, input);
+    else if(action==="cancel-chat")await mutate(id,s=>{s.porti??=initialPorti();cancelChatTurn(s.porti,input.requestId);});
     else if (action === "chat") result = await nearChat(id, input);
     else if (action === "investigate") {
       const snapshot = await nearInvestigate(id, input.kind, input.account);
@@ -150,6 +152,8 @@ export async function POST(request: Request) {
               "Wait for Porti to finish before clearing chat.",
             );
           p.messages = [];
+          delete p.pendingChatTransfer;
+          delete p.chatLock;
         }
         if (action === "remove-ai") delete p.aiKeyCipher;
         if (action === "remove-index") delete p.indexKeyCipher;

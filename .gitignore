@@ -43,3 +43,13 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+wrangler.cloudflare.generated.json
+
+# Rust build output
+/contracts/*/target/
+
+# Impeccable design-review captures and decision logs (local only)
+/.impeccable/review/
+/.impeccable/questions/
+/.impeccable/mocks/

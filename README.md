@@ -9,13 +9,13 @@ Porti turns everyday instructions into inspectable NEAR workflows: research a to
 | Area | Behavior and boundary |
 | --- | --- |
 | Ask Porti | NEAR AI Cloud tool chat; typed purchase requests open a payment-method card; workflow cards open Swap, Stake, Buy, Transfers or Markets. Pictures use a separate NEAR AI Cloud vision request. |
-| Research | Token metadata, live provider charts, sampled top traders and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
+| Research | Token metadata, live provider charts and partial risk evidence. Missing holders, liquidity locks, admin permissions or sellability checks remain unknown. No calibrated rug probability. |
 | Markets | NEAR pool-volume rankings, reported positive 24h gainers, and curated Black Dragon / SHITZU coverage. One returned pool per token; not a complete market-cap ranking or memecoin census. |
 | Wallets / payments | Free browser-local implicit wallets with encrypted backup/restore, optional setup-gated Seams passkey wallets, external wallet connections, NEP-413 wallet-control proofs, username-linked NEAR recipients and explicit wallet-approved transfers. Local wallet keys are generated on the user’s device and stored encrypted in that browser; the server and AI never receive them. |
 | Swap | Native NEAR source; NEAR-mainnet output or supported Ethereum, Base, Arbitrum and BNB Chain output from the live 1Click catalog. Confirmed recipient, NEAR refund address, quote review and separate wallet approval. |
 | Stake | Reviewed liquid staking into the fixed Meta Pool contract. Funded acceptance remains unverified; no built-in exit or native-validator delegation. |
 | Buy NEAR | USD purchase card with card / Apple Pay selection. Signed MoonPay checkout requires merchant credentials, eligibility and trusted customer-IP configuration. No card details in Porti. |
-| Social | Accepted-friend messages and private picture attachments; blocking revokes access. X profile linking uses read-only OAuth scopes and needs owner app credentials. |
+| Social | Accepted-friend messages, consent-based private group chats and private picture attachments; membership and blocking checks revoke access. See [chat setup](docs/social-chat.md). X profile linking uses read-only OAuth scopes and needs owner app credentials. |
 | Porti Care | Evidence-backed support requests, two independent human approvals, verified recipients and reviewed NEAR/NEP-141 donations. [Setup and limits](docs/porti-care.md). |
 | Appearance | Automatic local day/night theme with saved Light/Dark/Auto preference. |
 | Alerts | Linked Telegram observations and authorized delivery. Background updater requires the existing owner-private hosting boundary. |
@@ -37,7 +37,7 @@ The application targets React/vinext on Cloudflare Workers with D1 (`DB`) and pr
 
 ## Evidence and limitations
 
-107 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
+151 automated tests currently cover research adapters, username proofs, owner isolation, quotas, exact transfer/staking evidence, chat membership, image permissions, OAuth state, signed checkout construction, and swap routing/approval constraints. Run them yourself; this is not an independent security audit.
 
 The development environment returned HTTP 403 from the 1Click catalog and the holder indexer. Porti reports provider failures without fabricated balances, quotes or safety results. X/MoonPay credentials must be supplied by the owner. Funded swaps, purchases and stakes were not executed during development QA. See [production readiness](docs/production-readiness.md), [transaction limits](docs/transactions.md) and [operations](docs/operations.md).
 
@@ -51,7 +51,11 @@ Keep secrets in the host's runtime environment or the existing encrypted provide
 - `lib/near-services.ts`, `lib/staking.ts`: transfer/staking reviews and strict NEAR receipt evidence.
 - `lib/funding.ts`, `lib/x-connect.ts`: signed provider checkout and owner-bound OAuth PKCE.
 - `lib/media.ts`, `lib/friends.ts`: private image access and current friendship authorization.
-- `lib/markets.ts`, `lib/token-chart.ts`, `lib/token-traders.ts`: labeled provider snapshots.
+- `lib/markets.ts` and `lib/token-chart.ts`: labeled provider snapshots.
 - `lib/telegram.ts`, `lib/workspace.ts`, `drizzle/`: observations, durable state, identity and quotas.
 
 Porti uses NEAR-inspired mint, black and white with original anime artwork and Fredoka/Nunito typography. Font licenses are in `public/fonts`. Porti is independent; integrations do not imply official partnerships.
+
+## Independent Cloudflare pilot
+
+The optional `cloudflare-standalone` branch adds Cloudflare Access authentication, a separate D1 build/deploy target and a disabled shared runner. See [standalone setup](docs/cloudflare-hosting.md). This target requires its own database and Access configuration; existing hosted data and credentials are not migrated. R2 is optional and off by default.

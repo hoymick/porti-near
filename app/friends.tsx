@@ -1,8 +1,12 @@
 "use client";
 import {browserRequestId} from '../lib/browser-request-id.mjs';
 import ImageUpload from "./image-upload";
+import ChatMessage from './chat-message';
+import GroupChats from './group-chats';
 import React, { useEffect, useRef, useState } from "react";
-export default function Friends({ sample = false }: { sample?: boolean }) {
+export default function Friends({ sample = false,onProfile }: { sample?: boolean;onProfile?:()=>void }) {
+  const [tab,setTab]=useState('friends'),[notice,setNotice]=useState('');
+  const guard=useRef(false);
   const [state, setState] = useState<any>(null),
     [pair, setPair] = useState(""),
     [name, setName] = useState(""),
@@ -35,9 +39,10 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
     const timer = setInterval(() => {
       if (!document.hidden) refresh(pair).catch((e) => setError(e.message));
     }, 10000);
-    return () => clearInterval(timer);
+    return () => {clearInterval(timer);epoch.current++;};
   }, [pair, sample]);
   async function act(action: string, extra: any = {}) {
+    if(guard.current||sample)return;guard.current=true;setNotice('');
     setBusy(true);
     setError("");
     try {
@@ -54,6 +59,8 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
         }),
         d: any = await r.json();
       if (!r.ok) throw new Error(d.error?.message || "Action failed.");
+      setNotice(({request:'Friend request sent.',accept:'Friend request accepted. You can now chat.',send:'Message sent.',cancel:'Request cancelled.',decline:'Request declined.',remove:'Friend removed.',block:'User blocked.',unblock:'User unblocked. A new request is required after the cooldown.'} as Record<string,string>)[action]||'Done.');
+      if(action==='request')setName('');
       if (action === "send") {
         setText("");setImage(null);
         outbound.current = null;
@@ -68,17 +75,19 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      guard.current=false;
       setBusy(false);
     }
   }
   const friend = state?.links?.find((x: any) => x.pair === pair);
-  return (
-    <div className="sc-two-col">
+  if(state?.profileRequired)return <section className="sc-panel"><h2>Start with your Porti username.</h2><p>Claim a username and verify your NEAR wallet in Profile. Friends will find you by that exact @username.</p>{onProfile&&<button className="primary" onClick={onProfile}>Open Profile</button>}<p className="sc-fine">Your friend also needs their own profile and permission to access this deployment. A GitHub invitation does not grant app access.</p></section>;
+  return (<div className="porti-social"><div className="sc-buttons porti-social-tabs" role="group" aria-label="Chat sections"><button className={tab==='friends'?'primary':'secondary'} disabled={busy} aria-pressed={tab==='friends'} onClick={()=>setTab('friends')}>Friends & requests{state?.links?.some((f:any)=>f.status==='pending'&&!f.outgoing)?' · New':''}</button><button className={tab==='groups'?'primary':'secondary'} disabled={busy||sample||!state} aria-pressed={tab==='groups'} onClick={()=>setTab('groups')}>Group chats</button></div>{notice&&<p className="sc-notice" role="status">{notice}</p>}{tab==='groups'?<GroupChats sample={sample}/>:(
+    <div className="porti-social-grid">
       <section className="sc-panel">
         <span className="sc-eyebrow">YOUR ONCHAIN CIRCLE</span>
         <h2>Good company. Clear signals.</h2>
         <p>
-          Add a verified Porti username. Only accepted friends can message each
+          {state&&<>Your username is <strong>@{state.username}</strong>. </>}Add a verified Porti username. Only accepted friends can message each
           other.
         </p>
         {sample && (
@@ -99,13 +108,15 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
             maxLength={21}
             onChange={(e) => setName(e.target.value)}
             placeholder="@yourfriend"
-            required
+            required disabled={busy||sample||!state}
           />
-          <button className="primary" disabled={busy || sample}>
+          <button className="primary" disabled={busy || sample || !state || !name.trim()}>
             Send friend request
           </button>
         </form>
         <div className="porti-friend-list">
+          {!state&&!sample&&<p role="status">Loading your circle…</p>}
+          {state?.links?.length===0&&<p>No friends yet. Send a request or share your @username.</p>}
           {state?.links?.map((f: any) => (
             <article key={f.pair}>
               <strong>@{f.username}</strong>
@@ -120,8 +131,10 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
                 {f.status === "accepted" && (
                   <button
                     className="secondary"
+                    disabled={busy}
                     onClick={() => {
                       setState((s: any) => ({ ...s, messages: [] }));
+                      setText('');setImage(null);selected.current=f.pair;
                       setPair(f.pair);
                     }}
                   >
@@ -142,9 +155,9 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
                     <button
                       className="secondary"
                       disabled={busy}
-                      onClick={() => act("remove", { pair: f.pair })}
+                      onClick={() => act(f.status==='pending'?(f.outgoing?'cancel':'decline'):'remove', { pair: f.pair })}
                     >
-                      {f.status === "pending" ? "Dismiss" : "Remove"}
+                      {f.status === "pending" ? f.outgoing?'Cancel request':'Decline' : "Remove friend"}
                     </button>
                     <button
                       className="secondary"
@@ -168,8 +181,7 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           ))}
         </div>
         <p className="sc-fine">
-          Your friend also needs access to this private Site. A GitHub
-          collaborator invitation does not grant Site access.
+          Your friend also needs access to this deployment and a linked profile. A GitHub collaborator invitation does not grant app access.
         </p>
       </section>
       <section className="sc-panel">
@@ -186,15 +198,10 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
         >
           {state?.pair === pair &&
             state.messages?.map((m: any) => (
-              <article className={m.mine ? "mine" : ""} key={m.id}>
-                <small>
-                  {m.mine ? "You" : "@" + friend?.username} ·{" "}
-                  {new Date(m.createdAt).toLocaleTimeString()}
-                </small>
-                {(()=>{try{const a=JSON.parse(m.body);if(typeof a.portiImage==="string"&&/^[a-f0-9-]{36}$/.test(a.portiImage))return <><img className="porti-chat-image" src={"/api/porti/images?id="+a.portiImage} alt="Shared photo"/><p>{a.caption}</p></>}catch{}return <p>{m.body}</p>})()}
-              </article>
+              <ChatMessage message={m} name={'@'+friend?.username} key={m.id}/>
             ))}
           {!pair && <p>Choose an accepted friend to open your chat.</p>}
+          {pair&&state?.pair===pair&&state.messages?.length===0&&<p>No messages yet. Say hello.</p>}
         </div>
         <form
           className="sc-form"
@@ -207,9 +214,9 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           <textarea
             id="friend-message"
             value={text}
-            maxLength={2000}
+            maxLength={image?1000:2000}
             onChange={(e) => setText(e.target.value)}
-            disabled={!pair || sample}
+            disabled={!pair || sample || busy}
           />
           <button
             className="primary"
@@ -219,6 +226,6 @@ export default function Friends({ sample = false }: { sample?: boolean }) {
           </button>
         </form>
       </section>
-    </div>
+    </div>)}</div>
   );
 }

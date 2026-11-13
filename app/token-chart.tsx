@@ -103,6 +103,7 @@ export default function TokenChart({
     y = (v: number) => 20 + ((max - v) / span) * 210,
     step = 650 / Math.max(rows.length, 1),
     selected = hover == null ? rows.at(-1) : rows[hover],
+    cached = !sample && !!(error || data?.stale || data?.refreshError),
     a = data?.reading || {
       bias: "Insufficient completed history",
       ema20: null,
@@ -154,20 +155,28 @@ export default function TokenChart({
         <>
           <div className="porti-live-price">
             <strong>
-              {fmt(data.livePrice || data.rows.at(-1)[4])} <small>USD</small>
+              {fmt(data.livePrice ?? data.rows.at(-1)[4])} <small>USD</small>
             </strong>
             <span>
               {sample
                 ? "Fictional walkthrough"
-                : data.livePrice
-                  ? "Latest pool price"
-                  : "Latest candle close"}{" "}
+                : cached
+                  ? "Cached price · refresh needed"
+                  : data.livePrice
+                    ? "Pool snapshot price"
+                    : "Last returned candle close"}{" "}
               ·{" "}
               {data.fetchedAt
-                ? new Date(data.fetchedAt).toLocaleTimeString()
+                ? new Date(data.poolFetchedAt || data.fetchedAt).toLocaleString()
                 : ""}
             </span>
           </div>
+          {!sample && data.latestCandleAt && (
+            <p className="sc-fine">
+              Latest candle opened {new Date(data.latestCandleAt).toLocaleString()}.
+              {" "}Snapshot fetched {new Date(data.fetchedAt).toLocaleString()}.
+            </p>
+          )}
           {data.forming && (
             <p className="sc-fine">
               The last candle is still forming. Indicators use completed candles
@@ -270,11 +279,11 @@ export default function TokenChart({
           </svg>
           <div className="porti-metrics">
             {[
-              ["EMA 20", a.ema20],
-              ["EMA 50", a.ema50],
+              ["EMA 20 · USD", a.ema20],
+              ["EMA 50 · USD", a.ema50],
               ["RSI 14", a.rsi],
-              ["Prior 20 support", a.support],
-              ["Prior 20 resistance", a.resistance],
+              ["Prior 20 support · USD", a.support],
+              ["Prior 20 resistance · USD", a.resistance],
             ].map(([k, v]) => (
               <div key={String(k)}>
                 <small>{k}</small>
@@ -292,6 +301,13 @@ export default function TokenChart({
                   ? "RSI below 30: weak recent momentum; a rebound is not guaranteed."
                   : "RSI is between 30 and 70."}
           </p>
+          {a.change != null && a.changeFrom && a.changeTo && (
+            <p className="sc-fine">
+              Completed sample change: {fmt(a.change)}% from{" "}
+              {new Date(a.changeFrom * 1000).toLocaleString()} to{" "}
+              {new Date(a.changeTo * 1000).toLocaleString()} ({a.completedCandles} candles; opening times shown).
+            </p>
+          )}
           {data.refreshError && <p role="status">{data.refreshError}</p>}
           {data.stale && (
             <p role="status">

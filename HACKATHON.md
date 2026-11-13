@@ -19,7 +19,7 @@ Interactive testing requires the configured host's authenticated identity, D1 an
 | Open navigation | Three primary destinations and expandable Research, Wallet, Social & Alerts, Settings groups retain all screens. |
 | Open System status | Setup flags and observed evidence are distinct; no credentials appear. |
 | Open Research → Markets, refresh, switch tables | Returned NEAR provider rows have price, reported change, pool volume/liquidity, timestamp and source. Missing data or provider errors are explicit. |
-| Investigate `wrap.near`, open Top traders and Risk checks | Actual sampled swap rankings and available risk evidence, with limited-coverage labels. Holder/provider failure does not produce invented holders or a safety verdict. |
+| Investigate `wrap.near`, open Risk checks | Available risk evidence, with limited-coverage labels. Holder/provider failure does not produce invented holders or a safety verdict. |
 | Ask “Show NEAR top gainers” with a working AI key | A bounded market tool result, or an honest provider failure. |
 | Ask “Open swaps” | Workflow review card opens Swap. No funds move. |
 | Ask “hi porti buy me $50 worth of NEAR” | Card / Apple Pay choice and verified NEAR destination; absent merchant setup disables signed checkout. No payment is made. |

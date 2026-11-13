@@ -1,10 +1,13 @@
+import { assertTransferSourceRole } from "./review-wallet.mjs";
+import { nearAICompletion } from "./near-ai.mjs";
 import { responseJSON } from "./request-guard.mjs";
 import { env } from "cloudflare:workers";
 import { DomainError } from "./errors.mjs";
 import { mutate, readWorkspace } from "./workspace";
 import {
   nearAccountOK,
-  parseHolders,
+  accountCode,
+  accountBalanceDisplay,
   decimal,
   usdRaw,
   units,
@@ -14,7 +17,11 @@ import {
   finalTransferEvidence,
   gasReserve,
 } from "./near-core.mjs";
+import { createHolderLookup } from "./holder-lookup.mjs";
+const holderCandidates = createHolderLookup();
 import { tokenRisk } from "./token-risk.mjs";
+import { readContractControls } from "./contract-controls.mjs";
+import { readRiskEvidence } from "./risk-evidence.mjs";
 const runtime = env as unknown as Record<string, string>;
 export function initialPorti() {
   return {
@@ -118,6 +125,26 @@ export async function portiConfig(id: string, scope: string = "all") {
       : "",
   };
 }
+export function createRpcReadQueue(maxActive = 4, maxQueued = 64) {
+  let active = 0;
+  const waiting: Array<() => void> = [];
+  return function queued<T>(work: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const run = () => {
+        active++;
+        Promise.resolve().then(work).then(resolve, reject).finally(() => {
+          active--;
+          waiting.shift()?.();
+        });
+      };
+      if (active < maxActive) run();
+      else if (waiting.length < maxQueued) waiting.push(run);
+      else reject(new DomainError("RPC_BUSY", "NEAR reads are busy. Try again shortly.", 503));
+    });
+  };
+}
+const rpcReadQueue = createRpcReadQueue();
+const rpcVerifications = new Map<string, Promise<void>>();
 const rpcChecks = new Map<string, number>();
 async function fetchJSON(
   url: string,
@@ -128,8 +155,14 @@ async function fetchJSON(
     const r = await fetch(url, {
       ...init,
       redirect: "manual",
-      signal: AbortSignal.timeout(label === "NEAR AI Cloud" ? 40000 : 12000),
+      signal: AbortSignal.timeout(12000),
     });
+    if (r.status === 429)
+      throw new DomainError(
+        "PROVIDER_RATE_LIMIT",
+        `${label} is rate-limiting requests. Try again after one minute.`,
+        503,
+      );
     if (!r.ok)
       throw new DomainError(
         "PROVIDER_ERROR",
@@ -148,10 +181,13 @@ async function fetchJSON(
 }
 export async function nearRpc(id: string, method: string, params: any) {
   const { rpc } = await portiConfig(id, "rpc");
+  return rpcReadAt(rpc, method, params);
+}
+async function rpcReadAt(rpc: string, method: string, params: any) {
   if (!["status", "query", "tx", "block", "gas_price"].includes(method))
     throw new DomainError("RPC_METHOD", "This RPC method is not allowed.");
   const call = async (name: string, args: any) => {
-    const d = await fetchJSON(
+    const d = await rpcReadQueue(() => fetchJSON(
       rpc,
       {
         method: "POST",
@@ -164,7 +200,7 @@ export async function nearRpc(id: string, method: string, params: any) {
         }),
       },
       "NEAR RPC",
-    );
+    ));
     if (d.error || !d.result)
       throw new DomainError(
         "RPC_READ_FAILED",
@@ -174,24 +210,48 @@ export async function nearRpc(id: string, method: string, params: any) {
     return d.result;
   };
   if (method !== "status" && Date.now() - (rpcChecks.get(rpc) || 0) > 60000) {
-    const status = await call("status", []);
-    if (status.chain_id !== "mainnet")
-      throw new DomainError(
-        "WRONG_NETWORK",
-        "This endpoint is not NEAR mainnet.",
-      );
-    if (rpcChecks.size >= 32) rpcChecks.delete(rpcChecks.keys().next().value!);
-    rpcChecks.set(rpc, Date.now());
+    if (!rpcVerifications.has(rpc)) {
+      const check = (async () => {
+        const status = await call("status", []);
+        if (status.chain_id !== "mainnet")
+          throw new DomainError(
+            "WRONG_NETWORK",
+            "This endpoint is not NEAR mainnet.",
+          );
+        if (rpcChecks.size >= 32) rpcChecks.delete(rpcChecks.keys().next().value!);
+        rpcChecks.set(rpc, Date.now());
+      })().finally(() => rpcVerifications.delete(rpc));
+      rpcVerifications.set(rpc, check);
+    }
+    await rpcVerifications.get(rpc);
   }
   return call(method, params);
 }
-export async function viewAccount(id: string, account: string) {
+export function createInvestigationReader(rpc: string) {
+  const fallback = "https://free.rpc.fastnear.com";
+  const eligible = rpc === "https://rpc.mainnet.near.org" || rpc === "https://rpc.mainnet.near.org/";
+  let usingFallback = false;
+  const read = async (_id: string, method: string, params: any) => {
+    if (usingFallback) return rpcReadAt(fallback, method, params);
+    try { return await rpcReadAt(rpc, method, params); }
+    catch (error: any) {
+      if (!eligible || !["PROVIDER_RATE_LIMIT", "PROVIDER_UNAVAILABLE", "PROVIDER_ERROR", "RPC_READ_FAILED"].includes(error?.code)) throw error;
+      // rpcReadAt validates the fallback's mainnet chain ID before a query.
+      // Only default public reads use failover; configured private URLs stay private.
+      const result = await rpcReadAt(fallback, method, params);
+      usingFallback = true;
+      return result;
+    }
+  };
+  return {read, usedFallback: () => usingFallback};
+}
+export async function viewAccount(id: string, account: string, read = nearRpc) {
   if (!nearAccountOK(account))
     throw new DomainError(
       "INVALID_ACCOUNT",
       "Enter a NEAR mainnet account, such as alice.near, or its 64-character implicit address.",
     );
-  return nearRpc(id, "query", {
+  return read(id, "query", {
     request_type: "view_account",
     finality: "final",
     account_id: account,
@@ -202,6 +262,7 @@ export async function viewFunction(
   contract: string,
   method: string,
   args: any = {},
+  read = nearRpc,
 ) {
   if (
     !nearAccountOK(contract) ||
@@ -214,7 +275,7 @@ export async function viewFunction(
     ].includes(method)
   )
     throw new DomainError("INVALID_VIEW", "This read method is not allowed.");
-  const result = await nearRpc(id, "query", {
+  const result = await read(id, "query", {
     request_type: "call_function",
     finality: "final",
     account_id: contract,
@@ -242,9 +303,9 @@ async function indexer(id: string, path: string) {
     "NearBlocks indexer",
   );
 }
-export async function tokenMetadata(id: string, token: string) {
+export async function tokenMetadata(id: string, token: string, read = nearRpc) {
   if (token === "near") return { symbol: "NEAR", name: "NEAR", decimals: 24 };
-  const m = await viewFunction(id, token, "ft_metadata");
+  const m = await viewFunction(id, token, "ft_metadata", {}, read);
   if (!m || !Number.isInteger(m.decimals) || m.decimals < 0 || m.decimals > 36)
     throw new DomainError(
       "INVALID_TOKEN",
@@ -294,9 +355,12 @@ export async function nearInvestigate(
       "INVALID_ACCOUNT",
       "Use a valid NEAR mainnet account or token contract.",
     );
+  const { rpc } = await portiConfig(id, "rpc");
+  const rpcReader = createInvestigationReader(rpc);
+  const read = rpcReader.read;
   const warnings: string[] = [];
   if (kind === "wallet") {
-    const a = await viewAccount(id, account);
+    const a = await viewAccount(id, account, read);
     return {
       kind,
       address: account,
@@ -308,7 +372,7 @@ export async function nearInvestigate(
         coin_balance: a.amount,
         locked: a.locked,
         storage_usage: a.storage_usage,
-        is_contract: a.code_hash !== "11111111111111111111111111111111",
+        is_contract: accountCode(a).isContract,
       },
       holders: [],
       transfers: [],
@@ -320,25 +384,43 @@ export async function nearInvestigate(
       coverage: "Final account state only; not full account history.",
     };
   }
-  const [metadata, supply] = await Promise.all([
-    tokenMetadata(id, account),
-    viewFunction(id, account, "ft_total_supply"),
+  const [metadata, supply, contractControls] = await Promise.all([
+    tokenMetadata(id, account, read),
+    viewFunction(id, account, "ft_total_supply", {}, read),
+    readContractControls(
+      () => viewAccount(id, account, read),
+      (blockHash: string) => read(id, "query", {request_type:"view_access_key_list", block_id:blockHash, account_id:account}),
+    ),
   ]);
   if (typeof supply !== "string" || !/^\d+$/.test(supply))
     throw new DomainError(
       "INVALID_SUPPLY",
       "Token total supply was not a raw integer.",
     );
+  const researchWork = () => readRiskEvidence(account, metadata, contractControls, (params: any) => read(id, "query", params));
   let holders: any[] = [];
+  let holderLookupFailed = false;
+  let holderAccessHint: string | null = null;
+  let holderCandidatesAt: number | null = null;
   try {
-    holders = parseHolders(
-      await indexer(id, `/fts/${account}/holders?limit=30`),
+    const candidates = await holderCandidates(id, account, () =>
+      indexer(id, `/fts/${account}/holders?limit=30`),
     );
+    holders = candidates.holders;
+    holderCandidatesAt = candidates.fetchedAt;
   } catch (e: any) {
+    holderLookupFailed = true;
+    const { indexKey } = await portiConfig(id, "index");
+    holderAccessHint = indexKey
+      ? "Check the connected NearBlocks API key and its quota in Connections. Repeated retries cannot bypass provider limits."
+      : "No NearBlocks API key is connected. Add a key in Connections for holder lookups; the shared public endpoint may remain blocked or rate-limited.";
+    warnings.push(holderAccessHint);
     warnings.push(
       e instanceof DomainError
         ? e.message
-        : "The holder response was not recognized.",
+        : e?.code === "PROVIDER_RATE_LIMIT"
+          ? "NearBlocks holder lookups are cooling down after a rate limit. Try again after one minute."
+          : "The holder response was not recognized.",
     );
   }
   // Re-read top-ten balances from finalized NEAR RPC instead of trusting an indexer amount unit.
@@ -349,14 +431,14 @@ export async function nearInvestigate(
           const [balance, detail] = await Promise.all([
             viewFunction(id, account, "ft_balance_of", {
               account_id: h.address.hash,
-            }),
-            viewAccount(id, h.address.hash),
+            }, read),
+            viewAccount(id, h.address.hash, read),
           ]);
           if (typeof balance !== "string" || !/^\d+$/.test(balance))
             throw new Error();
           h.value = balance;
           h.address.is_contract =
-            detail.code_hash !== "11111111111111111111111111111111";
+            accountCode(detail).isContract;
         } catch {
           warnings.push(
             "Some holder balances or contract types could not be confirmed at finality.",
@@ -368,7 +450,13 @@ export async function nearInvestigate(
     );
   }
   // Only finalized, raw RPC-confirmed holder entries are safe for concentration calculations.
+  const candidateCount = holders.length;
   holders = holders.slice(0, 10).filter((h: any) => h.value !== null);
+  const holderStatus = holders.length
+    ? "confirmed_sample"
+    : holderLookupFailed || candidateCount
+      ? "unavailable"
+      : "no_candidates";
   const snapshot: any = {
     kind,
     address: account,
@@ -376,17 +464,24 @@ export async function nearInvestigate(
     checkedAt: Date.now(),
     source: "NEAR final RPC + NearBlocks holder candidates",
     metadata: { ...metadata, total_supply: supply, contract: null },
+    holderStatus,
+    holderCandidatesAt,
+    holderAccessHint,
     holders,
     transfers: [],
     balances: [],
     activity: [],
     contractScan: null,
+    contractControls,
+    researchChecks: await researchWork(),
+    rpcFallbackUsed: rpcReader.usedFallback(),
     warnings: [
       ...new Set(warnings),
+      ...(rpcReader.usedFallback() ? ["Some official public RPC reads failed; validated FastNEAR mainnet RPC was used for this observation."] : []),
       "Holder candidates depend on indexer coverage; this is not a complete holder census.",
     ],
     coverage:
-      "Up to 10 indexer holder candidates, with finalized RPC balance/type reads. Transfer relationships and ownership permissions are not indexed in this release.",
+      "Up to 10 indexer holder candidates, with finalized RPC balance/type reads. Contract code-hash and account access keys are inspected at one finalized block where available. Contract roles and transfer relationships are not audited.",
   };
   snapshot.risk = tokenRisk(snapshot);
   return snapshot;
@@ -464,8 +559,19 @@ export async function addNearWatch(
   });
   return { watched: true, kind, account };
 }
+function assertAgentDepositWallets(roles: any, sender: string, recipient: string) {
+  if (roles?.main?.account !== sender || roles?.agent?.account !== recipient) {
+    throw new DomainError(
+      "AGENT_DEPOSIT_WALLETS",
+      "The verified main or agent wallet changed. Prepare a new deposit.",
+      409,
+    );
+  }
+}
 export async function prepareNearTransfer(id: string, input: any) {
   const { sender, token } = input;
+  const agentDeposit = input.agentDeposit === true;
+  const maxDeposit = agentDeposit && token === "near" && input.denomination === "token" && input.amount === "max";
   const requestId =
     typeof input.requestId === "string" &&
     /^[a-zA-Z0-9-]{10,80}$/.test(input.requestId)
@@ -477,6 +583,8 @@ export async function prepareNearTransfer(id: string, input: any) {
     token,
     input.amount,
     input.denomination,
+    ...(agentDeposit ? [true] : []),
+    ...(input.senderRole != null ? [input.senderRole] : []),
   ]);
   if (requestId) {
     const prior = (await portiConfig(id, "state")).p.drafts.find(
@@ -509,17 +617,23 @@ export async function prepareNearTransfer(id: string, input: any) {
       "TRANSFER_INPUT",
       "Specify a connected sender, exact token contract/native near, and a different NEAR mainnet recipient.",
     );
+  if (input.senderRole != null) assertTransferSourceRole((await portiConfig(id, "state")).p.walletRoles, input.senderRole, sender);
+  if (agentDeposit) {
+    const {p} = await portiConfig(id, "state");
+    assertAgentDepositWallets(p.walletRoles, sender, recipient);
+  }
   const metadata = await tokenMetadata(id, token);
   await viewAccount(id, recipient);
   const senderState = await viewAccount(id, sender);
   let price: any = null,
-    raw: string;
+    raw = "0";
   try {
     if (input.denomination === "usd") {
       price = await tokenPrice(token);
       raw = usdRaw(input.amount, price.usd, metadata.decimals);
-    } else if (input.denomination === "token")
-      raw = units(input.amount, metadata.decimals);
+    } else if (input.denomination === "token") {
+      if (!maxDeposit) raw = units(input.amount, metadata.decimals);
+    }
     else throw new Error("Choose usd or token amount denomination.");
   } catch (e: any) {
     if (e instanceof DomainError) throw e;
@@ -553,7 +667,9 @@ export async function prepareNearTransfer(id: string, input: any) {
   const storageStaked =
       BigInt(senderState.storage_usage || 0) * BigInt("10000000000000000000"),
     spendable = BigInt(senderState.amount) - storageStaked - BigInt(reserve);
+  if (maxDeposit && spendable > BigInt(0)) raw = spendable.toString();
   if (
+    (maxDeposit && spendable <= BigInt(0)) ||
     spendable < (token === "near" ? BigInt(raw) : BigInt(storage) + BigInt(1))
   )
     throw new DomainError(
@@ -579,7 +695,9 @@ export async function prepareNearTransfer(id: string, input: any) {
     fingerprint,
     network: "mainnet",
     sender,
+    ...(input.senderRole != null ? { senderRole: input.senderRole } : {}),
     recipient,
+    ...(agentDeposit ? { agentDeposit } : {}),
     recipientUsername: resolvedProfile?.username || null,
     recipientVersion: resolvedProfile?.version || null,
     token,
@@ -620,6 +738,8 @@ export async function prepareNearTransfer(id: string, input: any) {
         "PENDING_TRANSFERS",
         "Verify pending wallet outcomes before preparing more transfers.",
       );
+    if (input.senderRole != null) assertTransferSourceRole(s.porti.walletRoles, input.senderRole, sender);
+    if (agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, sender, recipient);
     s.porti.drafts.unshift(draft);
     s.porti.drafts = s.porti.drafts.filter(
       (d: any, i: number) =>
@@ -637,6 +757,8 @@ export async function validateNearDraft(id: string, draftId: string) {
       "DRAFT_EXPIRED",
       "This transfer review expired or was already submitted. Prepare a new transfer.",
     );
+  if (d.senderRole != null) assertTransferSourceRole(p.walletRoles, d.senderRole, d.sender);
+  if (d.agentDeposit) assertAgentDepositWallets(p.walletRoles, d.sender, d.recipient);
   if(d.charityCampaignId){const {assertDonationCampaign}=await import("./charity");await assertDonationCampaign(d.charityCampaignId,d.recipient,d.token);}
   if (d.recipientUsername) {
     const { resolveUsername } = await import("./near-profile");
@@ -699,6 +821,8 @@ export async function validateNearDraft(id: string, draftId: string) {
         "DRAFT_ALREADY_REQUESTED",
         "This review was already sent to a wallet or expired. Check its outcome instead of submitting again.",
       );
+    if (current.senderRole != null) assertTransferSourceRole(s.porti.walletRoles, current.senderRole, current.sender);
+    if (current.agentDeposit) assertAgentDepositWallets(s.porti.walletRoles, current.sender, current.recipient);
     current.status = "wallet_requested";
     current.requestedAt = Date.now();
     current.gasReserve = reserve;
@@ -863,22 +987,11 @@ export async function savePortiSettings(id: string, input: any) {
         "INVALID_MODEL",
         "Use a model ID from the NEAR AI Cloud catalog.",
       );
-    const data = await fetchJSON(
-      "https://cloud-api.near.ai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${input.key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: "Reply OK." }],
-          max_tokens: 32,
-        }),
-      },
-      "NEAR AI Cloud",
-    );
+    const data = await nearAICompletion(input.key, {
+      model,
+      messages: [{ role: "user", content: "Reply OK." }],
+      max_tokens: 32,
+    });
     if (!data.choices?.[0]?.message)
       throw new DomainError(
         "AI_RESPONSE",
@@ -985,22 +1098,54 @@ export async function nearTool(
       output: {
         contract: snapshot.address,
         metadata: snapshot.metadata,
-        top10: snapshot.holders,
+        totalSupplyFormatted: `${decimal(snapshot.metadata.total_supply, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
+        holderStatus: snapshot.holderStatus,
+        holderCandidatesAt: snapshot.holderCandidatesAt,
+        holderAccessHint: snapshot.holderAccessHint,
+        contractControls: snapshot.contractControls,
+        researchChecks: snapshot.researchChecks,
+        top10: snapshot.holders.map((holder: any) => ({
+          ...holder,
+          balanceFormatted: `${decimal(holder.value, snapshot.metadata.decimals)} ${snapshot.metadata.symbol}`,
+          rawUnit: "token base units",
+          decimals: snapshot.metadata.decimals,
+        })),
         risk: {
           level: snapshot.risk.level,
           flags: snapshot.risk.flags,
+          observations: snapshot.risk.observations,
           unknowns: snapshot.risk.unknowns,
         },
         warnings: snapshot.warnings,
         source: snapshot.source,
         checkedAt: snapshot.checkedAt,
+        checkedAtISO: new Date(snapshot.checkedAt).toISOString(),
       },
     };
   }
   if (name === "inspect_account") {
     const snapshot = await nearInvestigate(id, "wallet", args.account);
     await saveObservation(id, snapshot);
-    return { card: { type: "account", snapshot }, output: snapshot };
+    return {
+      card: { type: "account", snapshot },
+      output: {
+        account: snapshot.address,
+        network: snapshot.network,
+        checkedAt: snapshot.checkedAt,
+        checkedAtISO: new Date(snapshot.checkedAt).toISOString(),
+        source: snapshot.source,
+        ...accountBalanceDisplay(snapshot.metadata.coin_balance, snapshot.metadata.locked),
+        isContract: snapshot.metadata.is_contract,
+        storageUsageBytes: snapshot.metadata.storage_usage,
+        rawEvidence: {
+          amount: snapshot.metadata.coin_balance,
+          locked: snapshot.metadata.locked,
+          unit: "yoctoNEAR",
+        },
+        coverage: snapshot.coverage,
+        warnings: snapshot.warnings,
+      },
+    };
   }
   if (name === "watch_account") {
     return {
@@ -1086,3 +1231,7 @@ async function notifyReceipt(id: string, r: any) {
     console.warn("Telegram receipt enqueue unavailable");
   }
 }
+
+
+
+

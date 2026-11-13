@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { load, database } from "./helpers/services.mjs";
 import { DomainError } from "../lib/errors.mjs";
+import { assertTransferSourceRole } from "../lib/review-wallet.mjs";
 import {
   checkOrigin,
   readJSON,
@@ -467,11 +468,13 @@ function transfers({
     "lib/near-services.ts",
     {
       env: { DB: adapter, PORTI_SETTINGS_KEY: "a".repeat(64) },
+      assertTransferSourceRole,
       ...near,
       DomainError,
       mutate: (id, fn) => mutateWorkspace(adapter, id, fn),
       readWorkspace: (id) => readStore(adapter, id),
       tokenRisk: () => ({}),
+      createHolderLookup: () => async () => ({ holders: [], fetchedAt: 0 }),
       fetch: async (url, init) => {
         const q = JSON.parse(init.body);
         calls.push(q.method);
@@ -594,6 +597,20 @@ test("transfer preparation retries return one review and approval can only be re
     (d) => d.id === drafts[0].id,
   );
   assert.ok(stored.requestedAt);
+  s.sql.close();
+});
+test("role-bound drafts preserve the source and reject unlinked or changed roles before approval", async () => {
+  const s = transfers();
+  const input = {requestId:"role-transfer-12345",sender:"alice.near",senderRole:"agent",recipient:"bob.near",token:"near",amount:"0.1",denomination:"token"};
+  await assert.rejects(s.prepareNearTransfer("a",input),e=>e.code==="SOURCE_WALLET_CHANGED");
+  assert.equal(s.calls.length,0);
+  s.sql.prepare("UPDATE workspaces SET state=json_set(state,'$.porti.walletRoles',json(?))").run(JSON.stringify({agent:{account:"alice.near",verifiedAt:1}}));
+  const draft = await s.prepareNearTransfer("a",input);
+  assert.equal(draft.senderRole,"agent");assert.equal(draft.sender,"alice.near");
+  await assert.rejects(s.prepareNearTransfer("a",{...input,senderRole:"main"}),e=>e.code==="REQUEST_REUSED");
+  s.sql.prepare("UPDATE workspaces SET state=json_set(state,'$.porti.walletRoles.agent.account','other.near')").run();
+  await assert.rejects(s.validateNearDraft("a",draft.id),e=>e.code==="SOURCE_WALLET_CHANGED");
+  assert.equal((await s.read()).state.porti.drafts.find(d=>d.id===draft.id).status,"awaiting_review");
   s.sql.close();
 });
 test("provider requests cannot silently switch to a testnet endpoint", async () => {

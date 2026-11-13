@@ -1,3 +1,5 @@
+import {nearSessionRequest} from '../lib/near-session.mjs';
+import {standaloneRequest} from '../lib/cloudflare-access.mjs';
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
@@ -8,6 +10,23 @@ const worker = {
     env: Cloudflare.Env,
     ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>,
   ) {
+    // Identity: NEAR wallet sessions on the standalone host and in dev; Cloudflare
+    // Access stays available as PORTI_AUTH_MODE=access, and hosted Sites keeps its own.
+    const e = env as any;
+    const authMode =
+      e.PORTI_AUTH_MODE ||
+      (e.PORTI_HOST_MODE === "cloudflare" || import.meta.env.DEV ? "near" : "sites");
+    if (authMode === "near") {
+      const path = new URL(request.url).pathname;
+      if (path === "/signin-with-chatgpt" || path === "/signout-with-chatgpt")
+        return Response.redirect(new URL("/", request.url), 303);
+    }
+    const guarded =
+      authMode === "near"
+        ? await nearSessionRequest(request, env)
+        : await standaloneRequest(request, env);
+    if (guarded instanceof Response) return guarded;
+    request = guarded;
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.
