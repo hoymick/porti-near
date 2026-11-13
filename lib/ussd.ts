@@ -241,6 +241,22 @@ async function demoReadPocket(net: Net, pocketId: string) {
   }
 }
 
+/** Public facts about the simulator, so anyone can verify it on an explorer. */
+export function simulatorInfo() {
+  const net = networkFor("simulator");
+  const e = env as any;
+  const network = net.chainId === "testnet" ? "testnet" : net.chainId === null ? "local sandbox" : "unknown";
+  const explorer = network === "testnet" ? "https://testnet.nearblocks.io" : null;
+  const pocket = typeof e.PORTI_SIM_POCKET === "string" && /^[a-z0-9._-]{2,64}$/.test(e.PORTI_SIM_POCKET) ? e.PORTI_SIM_POCKET : null;
+  return {
+    network,
+    explorer,
+    pocket,
+    recipients: [...parseRecipients(e.PORTI_SIM_RECIPIENTS)].map(([username, wallet]) => ({ username, wallet })),
+    demoPin: pocket ? e.PORTI_SIM_PIN || DEMO_PIN : null,
+  };
+}
+
 function reply(text: string, status = 200) {
   return new Response(text, {
     status,
@@ -292,15 +308,20 @@ export async function ussdRequest(request: Request, channel: "live" | "simulator
     if (channel === "simulator" && e.PORTI_SIM_POCKET)
       await linkSimulatorPhone(env.DB, p.phone, e.PORTI_SIM_POCKET, e.PORTI_SIM_PIN || DEMO_PIN);
     const directory = parseRecipients(e.PORTI_SIM_RECIPIENTS);
-    return reply(
-      await handleUssd(p, channel, {
-        db: env.DB,
-        readPocket: (id: string) => (channel === "simulator" ? demoReadPocket(net, id) : readPocket(net, id)),
-        resolveRecipient: channel === "live" ? resolveLiveRecipient : async (name: string) => directoryRecipient(directory, name),
-        sendFromPocket: (s: any) => sendFromPocket(net, s),
-        freezePocket: (f: any) => (channel === "simulator" ? demoFreezePocket(net, f) : freezePocket(net, f)),
-      }),
-    );
+    // The simulator also returns the full transaction hash in a header, so the
+    // page can link it on the explorer. A USSD screen only has room for 8 chars.
+    let tx: string | undefined;
+    const seen = <T extends { hash?: string }>(r: T) => ((tx = r.hash), r);
+    const text = await handleUssd(p, channel, {
+      db: env.DB,
+      readPocket: (id: string) => (channel === "simulator" ? demoReadPocket(net, id) : readPocket(net, id)),
+      resolveRecipient: channel === "live" ? resolveLiveRecipient : async (name: string) => directoryRecipient(directory, name),
+      sendFromPocket: async (s: any) => seen(await sendFromPocket(net, s)),
+      freezePocket: async (f: any) => seen(await (channel === "simulator" ? demoFreezePocket(net, f) : freezePocket(net, f))),
+    });
+    const res = reply(text);
+    if (channel === "simulator" && tx && /^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(tx)) res.headers.set("X-Porti-Tx", tx);
+    return res;
   } catch (e: any) {
     console.warn(
       JSON.stringify({ component: "porti-ussd", channel, code: e?.code || "INTERNAL_ERROR" }),

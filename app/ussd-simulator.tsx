@@ -3,12 +3,21 @@
 // Talking sends (sessionId, serviceCode, phoneNumber, cumulative text) to the
 // public /api/ussd/sim route, which accepts only +999 test numbers.
 import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff, Delete } from "lucide-react";
+import { Phone, PhoneOff, Delete, ExternalLink } from "lucide-react";
 import { browserRequestId } from "../lib/browser-request-id.mjs";
 import "./ussd-simulator.css";
 
 const SERVICE_CODE = "*384*1#";
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
+type SimInfo = {
+  network: string;
+  explorer: string | null;
+  pocket: string | null;
+  recipients: { username: string; wallet: string }[];
+  demoPin: string | null;
+};
+type Tx = { hash: string; label: string; at: number };
+const TX_KEY = "porti-sim-txs";
 type Screen =
   | { kind: "idle" }
   | { kind: "waiting" }
@@ -35,6 +44,8 @@ export default function UssdSimulator() {
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [input, setInput] = useState("");
   const [trail, setTrail] = useState<string[]>([]);
+  const [info, setInfo] = useState<SimInfo | null>(null);
+  const [txs, setTxs] = useState<Tx[]>([]);
   const session = useRef("");
   const field = useRef<HTMLInputElement>(null);
   const phoneOK = /^\+999\d{5,12}$/.test(phone);
@@ -44,6 +55,39 @@ export default function UssdSimulator() {
   useEffect(() => {
     if (open) field.current?.focus();
   }, [open]);
+
+  // Public facts (network, demo pocket, recipients) and this browser's recent transactions.
+  useEffect(() => {
+    fetch("/api/ussd/sim", { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<SimInfo>) : null))
+      .then((d) => {
+        if (d) setInfo(d);
+      })
+      .catch(() => {});
+    try {
+      const saved = JSON.parse(localStorage.getItem(TX_KEY) || "[]");
+      if (Array.isArray(saved)) setTxs(saved.filter((t) => typeof t?.hash === "string").slice(0, 5));
+    } catch {
+      /* no saved transactions */
+    }
+  }, []);
+
+  function remember(hash: string, text: string) {
+    const label = text.split("\n")[0].slice(0, 80);
+    setTxs((prev) => {
+      const next = [{ hash, label, at: Date.now() }, ...prev.filter((t) => t.hash !== hash)].slice(0, 5);
+      try {
+        localStorage.setItem(TX_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable */
+      }
+      return next;
+    });
+  }
+  const txUrl = (hash: string) => (info?.explorer ? `${info.explorer}/txns/${hash}` : null);
+  const lastTx = screen.kind === "closed" ? txs.find((t) => t.at > Date.now() - 30_000) : undefined;
+  const bob = info?.recipients?.[0]?.username || "bob";
+  const pin = info?.demoPin || "1234";
 
   async function post(text: string) {
     setScreen({ kind: "waiting" });
@@ -55,6 +99,8 @@ export default function UssdSimulator() {
         cache: "no-store",
       });
       const body = (await r.text()).slice(0, 400);
+      const hash = r.headers.get("X-Porti-Tx");
+      if (hash && /^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(hash) && body.startsWith("END ")) remember(hash, body.slice(4));
       if (body.startsWith("CON ")) setScreen({ kind: "open", text: body.slice(4) });
       else if (body.startsWith("END ")) setScreen({ kind: "closed", text: body.slice(4) });
       else setScreen({ kind: "error", text: "Network error. The simulator could not reach Porti." });
@@ -176,9 +222,63 @@ export default function UssdSimulator() {
           <ol>
             <li>Press the green call button.</li>
             <li>Reply <strong>1</strong> for Balance: what you can spend and how much of today’s limit is left.</li>
-            <li>Call again and reply <strong>2</strong> to send: type <strong>bob</strong>, an amount like <strong>0.05</strong>, then the demo PIN <strong>1234</strong>. Three wrong PINs lock sending for 15 minutes.</li>
+            <li>Call again and reply <strong>2</strong> to send: type <strong>{bob}</strong>, an amount like <strong>0.05</strong>, then the demo PIN <strong>{pin}</strong>. Three wrong PINs lock sending for 15 minutes.</li>
             <li>Reply <strong>3</strong> for your last 3 sends, or <strong>4</strong> to freeze the pocket. Normally only the main wallet can unfreeze it; this shared demo unfreezes itself after a minute so others can keep testing.</li>
           </ol>
+          {lastTx && txUrl(lastTx.hash) && (
+            <p className="ussd-tx-now" role="status">
+              Transaction submitted.{" "}
+              <a href={txUrl(lastTx.hash)!} target="_blank" rel="noreferrer">
+                View it on NearBlocks <ExternalLink size={13} aria-hidden />
+              </a>
+            </p>
+          )}
+          <h3>Verify it on chain</h3>
+          {info?.pocket && info.explorer ? (
+            <dl className="ussd-verify">
+              <dt>Network</dt>
+              <dd>NEAR {info.network}. Free test NEAR, real transactions.</dd>
+              <dt>Demo pocket</dt>
+              <dd>
+                <a href={`${info.explorer}/address/${info.pocket}`} target="_blank" rel="noreferrer">
+                  {info.pocket} <ExternalLink size={13} aria-hidden />
+                </a>
+                <span className="ussd-note">Its contract holds the caps; Balance reads them from the chain.</span>
+              </dd>
+              {info.recipients.map((r) => (
+                <div key={r.username}>
+                  <dt>@{r.username}</dt>
+                  <dd>
+                    <a href={`${info.explorer}/address/${r.wallet}`} target="_blank" rel="noreferrer">
+                      {r.wallet} <ExternalLink size={13} aria-hidden />
+                    </a>
+                  </dd>
+                </div>
+              ))}
+              <dt>Your transactions</dt>
+              <dd>
+                {txs.length ? (
+                  <ul>
+                    {txs.map((t) => (
+                      <li key={t.hash}>
+                        <a href={txUrl(t.hash) || "#"} target="_blank" rel="noreferrer">
+                          {t.label} <code>{t.hash.slice(0, 8)}</code> <ExternalLink size={13} aria-hidden />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="sc-fine">Sends and freezes you make here appear with a link to each transaction.</span>
+                )}
+              </dd>
+            </dl>
+          ) : (
+            <p className="sc-fine">
+              {info?.network === "local sandbox"
+                ? "Running on a private local NEAR sandbox, so there is no public explorer."
+                : "The demo pocket is not configured on this server yet."}
+            </p>
+          )}
           <h3>SMS inbox</h3>
           <p className="sc-fine">No messages yet. Codes and send receipts will appear here.</p>
         </div>

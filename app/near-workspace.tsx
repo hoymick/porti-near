@@ -2133,10 +2133,17 @@ export default function NearWorkspace({ signedIn: initialSignedIn }: { signedIn:
           {sample ? (
             <div className="sc-banner sample">
               <Info size={15} />
-              <span>
-                <strong>Fictional walkthrough.</strong> No real token data, AI
-                responses, wallet links or transfers.
-              </span>
+              {view === "Phone pocket" ? (
+                <span>
+                  <strong>Live on NEAR testnet.</strong> This phone pocket makes real
+                  transactions with free test NEAR. Check each one on the explorer.
+                </span>
+              ) : (
+                <span>
+                  <strong>Fictional walkthrough.</strong> No real token data, AI
+                  responses, wallet links or transfers.
+                </span>
+              )}
             </div>
           ) : (
             <div className="sc-banner">

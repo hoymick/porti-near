@@ -30,3 +30,13 @@ html[data-porti-theme=dark] .ussd-side input{background:#19271f;color:#e6f2ea}
 .near-app .ussd-sim .ussd-screen .ussd-muted{color:#2f4a39!important}
 .ussd-side h3{margin:22px 0 8px}
 .ussd-side .sc-fine{margin:8px 0 0}
+
+.near-app .ussd-sim .ussd-verify { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0 0 18px; font-size: 14px; }
+.near-app .ussd-sim .ussd-verify > div { display: contents; }
+.near-app .ussd-sim .ussd-verify dt { font-weight: 700; }
+.near-app .ussd-sim .ussd-verify dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.near-app .ussd-sim .ussd-verify .ussd-note { display: block; margin: 2px 0 0; font-size: 12px; opacity: .75; }
+.near-app .ussd-sim .ussd-verify ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.near-app .ussd-sim .ussd-verify a, .near-app .ussd-sim .ussd-tx-now a { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: inherit; font-weight: 600; }
+.near-app .ussd-sim .ussd-tx-now { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, currentColor 6%, transparent); font-size: 14px; }
+@media (max-width: 560px) { .near-app .ussd-sim .ussd-verify { grid-template-columns: 1fr; } }
