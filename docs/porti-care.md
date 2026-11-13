@@ -16,7 +16,7 @@ These are review controls, not automated identity verification or fraud certific
 
 Set `PORTI_CHARITY_REVIEWER_IDS` in runtime configuration to a comma-separated list of at least two trusted authenticated account IDs. Each reviewer can find their own identifier in Porti Care's Reviewer configuration panel when setup is missing. Do not use wallet addresses or display names in place of those IDs. Plan reviewer vetting, conflict handling, complaints and escalation before onboarding the community.
 
-No reviewer is assigned automatically, and the requester cannot self-approve. Without two configured reviewers, requests stay pending and donations cannot be prepared. The current Site remains owner-private: this prevents other people from accessing the live review queue. A genuine multi-user review must wait for separately authorized access and independent protection of the Telegram maintenance endpoint. This release does not widen Site access.
+No reviewer is assigned automatically, and the requester cannot self-approve. Without two configured reviewers, requests stay pending and donations cannot be prepared. On the standalone Worker, reviewers need their own NEAR-wallet sessions and the exact configured authenticated IDs. Missing R2 or reviewer configuration prevents the full flow. The original owner-private Site is separate and cannot support multi-user review without separately authorized access; its shared updater must remain protected.
 
 ## Evidence privacy
 

@@ -16,7 +16,7 @@ This is an interface walkthrough, not a live trade recording. Unknown LP locks, 
 
 ## Reproduce the implementation
 
-Use [README commands](README.md#run-and-verify-from-a-clean-checkout). Audited baseline: `7ee4c93d14f2232f073bd07caad8575f24d1849e`. 262 app tests across 42 files plus 25 contract tests passed; typecheck and both builds passed. Lint: 592 warnings / 0 errors. Tests include mocks; no funded acceptance was performed.
+Use [README commands](README.md#run-locally). Latest reviewed baseline: `b2975045dc97e7877fda5e38abcaafbb84b9aa7e`. 264 app tests passed locally; earlier contract CI passed 25 tests. Typecheck and both builds passed. Lint: 596 warnings / 0 errors. Tests include mocks; no funded acceptance was performed.
 
 | Inspect | Expected boundary |
 | --- | --- |
@@ -32,6 +32,6 @@ Use [README commands](README.md#run-and-verify-from-a-clean-checkout). Audited b
 
 ## Outstanding acceptance
 
-See [production gaps](docs/verification-2026-11-13.md): R2, MoonPay, X, optional Seams and Care reviewer setup missing; Telegram runner disabled; default phone sample unlinked; real phone delivery remains unverified. Real provider access, user signing and funded final outcomes were not established.
+See [production gaps](docs/verification-2026-11-13.md): R2, MoonPay, X, optional Seams and Care reviewer setup missing; Telegram runner disabled; the newer source includes a separately configured testnet Phone Pocket simulator, while real phone delivery remains unverified. Check deployed SHA and simulator configuration rather than assuming source changes are live. Real provider access, user signing and funded final outcomes were not established.
 
 The repository and hosted demo are public. A human still needs to publish the demo on X with **@NEARProtocol #NEARHackathon**, supply its actual public URL and complete the form. [Prepared checklist and draft](docs/hackathon-submission.md).

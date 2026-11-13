@@ -27,15 +27,15 @@ Model suggestions, server-validated reviews, wallet signatures and observed onch
 
 ## Operating Context
 
-- Next.js-style app on vinext / Cloudflare Workers with D1 and R2. The hosted app sits behind Cloudflare Access; the USSD routes are exempt.
+- Next.js-style app on vinext / Cloudflare Workers with D1 and R2. Standalone defaults to public landing/demo and NEAR-wallet sessions; Cloudflare Access is optional. The original owner-private Sites deployment is separate. USSD routes have their own channel/authentication controls.
 - The signed-out home is the landing page. Signed-in users get the workspace. A fictional "Walkthrough" mode exists.
-- Judges try Porti Pocket through the in-app phone simulator (`+999` test numbers, `/api/ussd/sim`).
+- Judges can try a separately configured NEAR testnet Phone Pocket through the in-app simulator (`+999` numbers, `/api/ussd/sim`). Real phone callbacks and ordinary financial workflows stay on mainnet.
 
 ## Capabilities and Constraints
 
 - Verified: research adapters, NEP-413 wallet proofs, username-linked recipients, reviewed transfers and Meta Pool staking reviews, chat with bounded tools, the USSD menu and Balance. The pocket contract's caps and key restrictions were proven on a local NEAR sandbox.
-- **Not yet verified:** funded mainnet transfers, staking, swaps and purchases; the USSD Send/Freeze/history flows; the live Africa's Talking callback; an independent security audit. These must not be claimed as working.
-- Mainnet only (testnet endpoints are refused).
+- **Not yet verified:** funded mainnet transfers, staking, swaps and purchases; real-user USSD Send/Freeze/history acceptance; the live Africa's Talking callback; an independent security audit. These must not be claimed as working.
+- Ordinary wallet/research workflows and live USSD require mainnet; the isolated simulator requires testnet (local sandbox exception in dev only).
 
 ## Brand Commitments
 
@@ -46,7 +46,7 @@ Model suggestions, server-validated reviews, wallet signatures and observed onch
 
 ## Evidence on Hand
 
-- 162 automated tests; 25 contract unit tests.
+- 264 app tests passed on `b297504`; 25 contract unit tests passed in prior CI. [Dated verification](docs/verification-2026-11-13.md).
 - Sandbox proof: with the server key, a 0.05 send was allowed; a 0.2 send was refused by the cap; `withdraw` and `set_limits` were refused by the key's method list.
 - No testimonials, customers, usage numbers or press exist. Do not fabricate any.
 

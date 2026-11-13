@@ -1,6 +1,6 @@
 # Friends and private group chats
 
-Open **Social & Alerts → Friends**. Claim a Porti username and verify your wallet in Profile first. Another person needs their own account, profile and permission to access this deployment. GitHub collaborator access does not grant Cloudflare Access permission. This update does not change the application's audience.
+Open **Social & Alerts → Friends**. Claim a Porti username and verify your wallet in Profile first. Another person needs their own NEAR-wallet session and profile. If an operator additionally enables Cloudflare Access, that edge policy must also admit them. GitHub collaborator access grants no app identity or access.
 
 ## Direct conversations
 
@@ -18,4 +18,4 @@ The interface polls while visible every 10 seconds. It shows the latest 50 messa
 
 The additive migration `0006_pretty_alex_wilder.sql` creates group, membership and message tables. Existing direct messages, profiles, wallets and earlier migrations are preserved. The Cloudflare deployment script applies pending D1 migrations before publishing. Never create group tables during a request or edit previously applied migrations.
 
-Regression tests use isolated SQLite databases and synthetic accounts. They cover invitation consent, membership and message isolation, role-controlled request actions, idempotent sends, blocking, profile unlinking, leaving/removal, picture permissions and a membership-revocation race. These tests do not establish that a second real user can sign in through the current Cloudflare Access policy. Owner and friend must complete that live acceptance separately.
+Regression tests use isolated SQLite databases and synthetic accounts. They cover invitation consent, membership and message isolation, role-controlled request actions, idempotent sends, blocking, profile unlinking, leaving/removal, picture permissions and a membership-revocation race. These tests do not establish real two-user acceptance or any configured edge policy. Owner and friend must complete live sign-in, request acceptance, messaging and blocking checks separately.

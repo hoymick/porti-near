@@ -1,12 +1,12 @@
-# Porti v0.12: owner activation
+# Porti provider activation
 
-The owner supplies credentials in the hosting environment. Do not paste secrets in chat, source, URLs, screenshots or issue reports. Environment presence is a setup check, not live acceptance evidence. Keep the current Site owner-private; this update does not authorize public hosting or repository publication.
+Reviewed 13 November 2026. The owner supplies credentials in the hosting environment. Do not paste secrets in chat, source, URLs, screenshots or issue reports. Configuration presence is not live acceptance evidence. The standalone Worker uses public landing/demo plus NEAR-wallet sessions; the original Sites deployment remains owner-private. See [current setup](setup.md) for both boundaries.
 
 ## Required host services
 
 - D1 binding `DB`, with ordered `drizzle/` migrations applied.
-- Private R2 binding `BUCKET`, declared in `.openai/hosting.json`. Do not enable public bucket access.
-- Authenticated request identity supplied by the current host. Private Site service access remains reserved for the existing Telegram updater; do not impersonate visitors.
+- Optional private R2 binding `BUCKET`, required for pictures/evidence. On standalone, generate it with build variable `PORTI_R2_BUCKET`; `.openai/hosting.json` describes the original Sites target. Do not enable public bucket access.
+- Authenticated identity from the selected host mode: NEAR-wallet sessions on standalone, optional Cloudflare Access, or original Sites identity. Private Site service access is reserved for that Site’s Telegram updater; never impersonate visitors.
 - `PORTI_SETTINGS_KEY`: stable high-entropy encryption secret; preserve existing data compatibility.
 - `PORTI_APP_URL`: the actual HTTPS Site origin, without a trailing slash.
 
@@ -31,7 +31,9 @@ Existing Telegram bot setup remains in its dedicated password form and [operatio
 
 Register this exact redirect URI in the X application:
 
-`https://wif-port-agent.catoptica-5751.chatgpt.site/api/porti/x/callback`
+`https://porti-near.hoymick240.workers.dev/api/porti/x/callback`
+
+Use the actual app origin if deploying elsewhere; each host has its own exact redirect URI.
 
 Enable OAuth 2 Authorization Code with PKCE for a confidential web client. Porti requests `users.read tweet.read`; it requests no posting, direct-message or offline scope. Open Profile → Connect X account and complete authorization yourself. Successful linking displays the returned handle. Test wrong-state, expired and reused callbacks without disclosing their query values in logs.
 
@@ -73,4 +75,4 @@ Primary references: [MoonPay parameters](https://dev.moonpay.com/widget/on-ramp/
 
 ## Internal agent-wallet activation
 
-The new in-app creation/unlock control needs a dedicated compatible Seams wallet service, registration Gateway and mainnet sponsor. See [internal wallet setup](internal-wallet.md) for the six public configuration values, version requirements and owner acceptance checks. This is separate from NEAR AI Cloud, MoonPay and X credentials.
+The default device-wallet option generates and encrypts a key locally without a paid provider. The optional managed Seams option needs a compatible wallet service, registration Gateway and mainnet sponsor. See [internal wallet setup](internal-wallet.md) for the exact fields and acceptance checks. Neither option uses the AI key as a wallet credential.
