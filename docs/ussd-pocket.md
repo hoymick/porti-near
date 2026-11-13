@@ -68,7 +68,25 @@ Requires a named parent account. Porti's implicit device wallets can't create `p
 - **3. Last 3 sends:** reads `ussd_sends` for this number. Every send attempt is recorded with its outcome (`sent`, `refused`, `pending`), and the list shows `sent` and `pending` (marked "submitted").
 - **4. Freeze pocket:** confirm with `1`, and the pocket key calls `freeze()`. No PIN is needed: freezing only makes the pocket safer and has to be quick for a lost phone. It also works while sending is PIN-locked. Only the main wallet can `unfreeze`.
 
-Local: `npm run pocket:sandbox` links `+999000001` with PIN `1234` and creates `@bob → bob.sandbox`. Put `PORTI_USSD_RPC` and `PORTI_POCKET_KEY` (the `serverKey` in `.wrangler/pocket-sandbox.json`) in `.dev.vars`.
+## Networks
+
+| Channel | Network | Key | Recipients |
+| --- | --- | --- | --- |
+| `live` (`/api/ussd`, a real phone line) | NEAR mainnet (`PORTI_USSD_RPC`, default `rpc.mainnet.near.org`) | `PORTI_POCKET_KEY` | Verified Porti usernames |
+| `simulator` (`/api/ussd/sim`, +999 numbers) | NEAR testnet (`PORTI_SIM_RPC`, default `rpc.testnet.near.org`) | `PORTI_SIM_POCKET_KEY` | `PORTI_SIM_RECIPIENTS` (`bob=porti-bob-….testnet`) |
+
+Both channels check the chain ID of their RPC.
+
+## Public testnet demo
+
+`npm run pocket:testnet` (once) creates a demo owner and `@bob` from the testnet faucet, then runs the real setup transaction. The pocket gets 6 test NEAR, 0.5 per send and 2 per day. The keys go to `.wrangler/pocket-testnet.json` (gitignored). The script prints the Worker settings: `PORTI_SIM_POCKET`, `PORTI_SIM_RECIPIENTS` and the secrets `PORTI_SIM_POCKET_KEY` and `PORTI_SIM_OWNER_KEY`. Add `--dev` to point local `.dev.vars` at it.
+
+- Each visitor's browser picks its own +999 number. On first dial, the number links itself to `PORTI_SIM_POCKET` with the demo PIN (`PORTI_SIM_PIN`, default `1234`), so each number has its own PIN lockout and history. Real numbers are never linked automatically.
+- **Demo-only unfreeze:** a minute after a visitor freezes the shared pocket, the server calls the owner-only `unfreeze()` with `PORTI_SIM_OWNER_KEY`, the testnet demo owner. This exists so one visitor can't block everyone. It runs only on the simulator channel; mainnet pockets are only ever unfrozen by their owner's wallet.
+
+## Local sandbox
+
+`npm run pocket:sandbox` runs the same setup on a private local chain. It links `+999000001` (PIN `1234`), sets `@bob → bob.sandbox`, and writes the `PORTI_SIM_*` settings to `.dev.vars`. Restart `npm run dev` afterwards.
 
 ## Service seam (Michael ↔ Jeff)
 

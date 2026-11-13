@@ -19,7 +19,8 @@
     "deploy:cloudflare": "node scripts/deploy-cloudflare.mjs",
     "db:local": "node scripts/d1-local.mjs",
     "pocket:sandbox": "node scripts/pocket-sandbox.mjs",
-    "pocket:check": "node scripts/pocket-sandbox-check.mjs"
+    "pocket:check": "node scripts/pocket-sandbox-check.mjs",
+    "pocket:testnet": "node scripts/pocket-testnet.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
