@@ -14,6 +14,7 @@ import { Account, JsonRpcProvider, KeyPair, actions } from "near-api-js";
 const root = resolve(import.meta.dirname, "..");
 const PORT = Number(process.env.SANDBOX_PORT || 3030);
 const PHONE = process.env.SIM_PHONE || "+999000001";
+const PIN = process.env.SIM_PIN || "1234"; // demo PIN for the simulator number only
 const near = (n) => BigInt(Math.round(n * 1e6)) * 10n ** 18n;
 const TGAS = 10n ** 12n;
 
@@ -73,7 +74,9 @@ try {
     serverKey: keys.server.toString(), aliceKey: keys.alice.toString(),
   }, null, 2), { mode: 0o600 });
 
-  const link = spawnSync(process.execPath, [join(root, "scripts/d1-local.mjs"), "link-sim", PHONE, ids.pocket], { cwd: root, encoding: "utf8" });
+  const d1 = (...a) => spawnSync(process.execPath, [join(root, "scripts/d1-local.mjs"), ...a], { cwd: root, encoding: "utf8" });
+  const link = d1("link-sim", PHONE, ids.pocket, PIN);
+  const named = d1("username", "bob", ids.bob);
 
   console.log(`
 Sandbox ready at ${sandbox.rpcUrl}
@@ -82,12 +85,16 @@ Sandbox ready at ${sandbox.rpcUrl}
   recipient     ${ids.bob}
   pocket keys   ${accessKeys.keys.map((k) => `${k.public_key.slice(0, 16)}... ${k.access_key.permission === "FullAccess" ? "FULL ACCESS" : "function-call: " + k.access_key.permission.FunctionCall.method_names.join(",")}`).join("; ")}
   get_pocket    ${JSON.stringify(pocket)}
-  simulator     ${PHONE} -> ${ids.pocket} ${link.status === 0 ? "(linked in local D1)" : "(link FAILED: run npm run db:local -- migrate)"}
+  simulator     ${PHONE} -> ${ids.pocket} ${link.status === 0 ? `(linked in local D1, PIN ${PIN})` : "(link FAILED: run npm run db:local -- migrate)"}
+  username      @bob -> ${ids.bob} ${named.status === 0 ? "(local profile)" : "(FAILED)"}
   state         ${statePath}
 
-Next: put PORTI_USSD_RPC=${sandbox.rpcUrl} in .dev.vars, restart npm run dev, then dial:
+Next: put these in .dev.vars, restart npm run dev, then dial (or use Phone pocket in the app):
+  PORTI_USSD_RPC=${sandbox.rpcUrl}
+  PORTI_POCKET_KEY=<serverKey from ${statePath}>
   curl -X POST http://127.0.0.1:5173/api/ussd/sim -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text='
   curl -X POST http://127.0.0.1:5173/api/ussd/sim -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'
+  Send: 2, then bob, then 0.05, then ${PIN}
 
 Ctrl-C stops the chain.`);
 } catch (e) {
