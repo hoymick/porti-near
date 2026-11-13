@@ -50,9 +50,20 @@ Requires a named parent account. Porti's implicit device wallets can't create `p
 
 ## Server rules
 
-- Only one `send` in flight per pocket at a time. The access-key nonce has to increase, so serialize sends per pocket.
-- Submit with `broadcast_tx_async`, end the USSD session, then reconcile and send the SMS asynchronously. Never wait for finality inside a session.
-- Store the pocket key encrypted, following the existing `PORTI_SETTINGS_KEY` pattern.
+- Only one `send` in flight per pocket at a time. The access-key nonce has to increase, so sends are serialized per pocket (a 15 s lock, released as soon as the outcome is final).
+- The server signs with `PORTI_POCKET_KEY` (an `ed25519:` secret set as a Worker secret; its public key is the one each pocket adds in its setup transaction).
+- Submit with `send_tx` and `wait_until: EXECUTED_OPTIMISTIC`, capped at 8 s, so the user hears the real outcome. On a timeout the session ends with "Submitted" and the hash, and the send is never retried. Reconcile and SMS receipts come next.
+
+## USSD Send flow
+
+`2` → `Send to @username:` → a verified Porti username → `Amount in NEAR (max X):`, where X = min(per-send cap, today left, spendable) → `Send X NEAR to @user? <wallet> Enter PIN to confirm / 0. Cancel` → PIN → `Sent X NEAR to @user. Ref: <hash>`.
+
+- The recipient wallet and amount are saved in the session at the confirm screen. A username that moves to another wallet mid-session doesn't change the send.
+- The session is claimed (deleted) before signing, so a replayed or duplicated final request can't send twice.
+- PINs are PBKDF2-SHA256 hashes with a per-number salt. Three wrong PINs lock sending for 15 minutes, while Balance keeps working. A number without a PIN can't send.
+- Contract refusals (frozen, over a cap, insufficient balance, a failed transfer that was refunded) are reported in plain words.
+
+Local: `npm run pocket:sandbox` links `+999000001` with PIN `1234` and creates `@bob → bob.sandbox`. Put `PORTI_USSD_RPC` and `PORTI_POCKET_KEY` (the `serverKey` in `.wrangler/pocket-sandbox.json`) in `.dev.vars`.
 
 ## Service seam (Michael ↔ Jeff)
 
