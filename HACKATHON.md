@@ -1,50 +1,37 @@
 # Porti — judge walkthrough
 
-This is Porti's project-specific walkthrough, not a copy of the event's official HACKATHON.md. Event reference: https://nearhackathon.com/ . Submission deadline: 14 November 2026, 23:59 UTC. Recheck the current official rules before submission.
+Project-specific guide, updated 13 November 2026. Official rules: <https://nearhackathon.com/HACKATHON.md>. Deadline: **14 November 2026, 23:59 UTC** (15 November, 00:59 WAT). Recheck before submitting.
 
 ## Problem and approach
 
-A user should not need separate tabs to understand a token, resolve a payment recipient, review a transaction and monitor its outcome. Porti puts those steps in one NEAR AI Cloud companion with human-controlled wallet approval. The key distinction is an explicit boundary between model suggestions, server-validated reviews, wallet signatures and observed evidence.
+Users should not need separate tabs to investigate a token and prepare a reviewed action. Porti brings research, identity and transaction preparation into a NEAR AI Cloud companion. The boundary separates model suggestions, validated reviews, user wallet signatures and observed execution evidence.
 
-Recommended primary track: AI Security & Defense. Candidate secondary track: Unstoppable DeFi, after a successful cross-chain demonstration. There is one submission per project; select only tracks supported by the finished evidence.
+The code integrates NEAR Intents / 1Click for supported native-NEAR-source swaps and Meta Pool for liquid staking. It does not implement perps, lending or vaults, or claim a freshly demonstrated cross-chain settlement. Choose tracks from actual evidence, not the event's entire example feature list.
 
-## Reproduce without funding
+## Hosted demo — no funds or sign-in
 
-Start with Node 22.22.2+, `npm ci`, `npm run check`, `npm test`, `npm run build`. Expected: type checking, deterministic tests and the Worker/client build pass. Tests use local fixtures and mocks; they are not proof of live external service success.
+Open <https://porti-near.hoymick240.workers.dev/> and choose **Try demo**. Follow [the screenshot sequence](docs/demo/README.md): Overview → MOCHI sample chart → risk checks → embedded Stake NEAR workflow → Porti Apps. Fixtures are labelled; AI and money movement are paused.
 
-Interactive testing requires the configured host's authenticated identity, D1 and private R2. See docs/commerce-setup.md. The current deployment is owner-private; a private URL is not a publicly accessible judge demo. Do not disable identity or the Telegram runner's private boundary for convenience.
+This is an interface walkthrough, not a live trade recording. Unknown LP locks, sellability and ownership semantics remain unresolved; the sample report establishes no real token's safety.
 
-| Do this | Expected result |
+## Reproduce the implementation
+
+Use [README commands](README.md#run-and-verify-from-a-clean-checkout). Audited baseline: `80ca0eb3edfb6f268d220151d0272dc3affa70b7`. 245 app tests across 41 files plus 25 contract tests passed; typecheck and both builds passed. Lint: 582 warnings / 0 errors. Tests include mocks; no funded acceptance was performed.
+
+| Inspect | Expected boundary |
 | --- | --- |
-| Open navigation | Three primary destinations and expandable Research, Wallet, Social & Alerts, Settings groups retain all screens. |
-| Open System status | Setup flags and observed evidence are distinct; no credentials appear. |
-| Open Research → Markets, refresh, switch tables | Returned NEAR provider rows have price, reported change, pool volume/liquidity, timestamp and source. Missing data or provider errors are explicit. |
-| Investigate `wrap.near`, open Risk checks | Available risk evidence, with limited-coverage labels. Holder/provider failure does not produce invented holders or a safety verdict. |
-| Ask “Show NEAR top gainers” with a working AI key | A bounded market tool result, or an honest provider failure. |
-| Ask “Open swaps” | Workflow review card opens Swap. No funds move. |
-| Ask “hi porti buy me $50 worth of NEAR” | Card / Apple Pay choice and verified NEAR destination; absent merchant setup disables signed checkout. No payment is made. |
-| Attach a non-sensitive picture | Private preview; sending it requests NEAR AI Cloud vision. Image instructions cannot authorize a transfer. |
-| Open Profile → X | Connect action is setup-gated until owner credentials are present; no posting/DM permissions requested. |
-| Open Wallets → Create / unlock inside Porti | Free device-wallet creation and encrypted-backup restoration require no Seams credentials. Do not generate a judge’s wallet without them; mainnet activation still needs a network transaction. |
-| Connect wallet using Wallets | User completes wallet-provider connection and a domain/nonce-bound NEP-413 proof. Porti never requests a seed phrase. |
-| Swap: select NEAR output and Get quote | Dry preview, or explicit registration/provider error. No wallet approval yet. |
-| Swap: select Base output and enter destination twice | Wrong network format or differing address confirmation fails; supported route produces an explicitly cross-chain review. |
-| Open Stake NEAR | Fixed Meta Pool review; signing remains a separate owner action. |
-| Request a transfer with no exact typed recipient/amount | Porti asks for details / rejects preparation, even when an image contains them. |
+| Public landing / Try demo | No email/OTP/wallet needed to visit; fixtures labelled. |
+| NEAR-wallet sign-in | Account/domain/nonce-bound NEP-413 proof; private workspace session. |
+| Live chat with configured AI key | Bounded tools and honest provider errors; no sample/live data mixing. |
+| Direct transfer / swap / staking | Current exact review before approval; yes/no applies only to eligible pending review. Wallet signature remains separate. |
+| Recipient / token search | One destination entry; token determines network. Quotes, refunds, expiry and signer checked. |
+| Transaction outcome | Popup/hash alone is not success; matching final receipts or settlement evidence required. |
+| Risk report | Partial samples/provider failures visible; no complete audit or rug probability. |
+| Local device wallet | Synthetic tests cover encryption, restore/export. No seed phrase; never send keys through AI. |
+| Social / Care / pictures | Membership tested; production R2/reviewer gaps limit real use. |
 
-## Social and financial acceptance
+## Outstanding acceptance
 
-Friend-picture sharing needs two independently authorized workspaces with profiles and an accepted friendship. The current owner-private audience prevents an external friend from using this hosted instance. Unit tests verify membership/block behavior; do not claim a live two-user test was completed here.
+See [production gaps](docs/verification-2026-11-13.md): R2, MoonPay, X, optional Seams and Care reviewer setup missing; Telegram runner disabled; default phone sample unlinked with incomplete actions. Real provider access, user signing and funded final outcomes were not established.
 
-Funded demonstrations must be performed by the wallet owner, in small amounts, after provider access works. Record the exact transfer/staking evidence and cross-chain source/destination hashes. Never present mocked tests, an opened checkout or a returned wallet hash as successful payment delivery. See docs/transactions.md for recovery and limitations.
-
-## Known gaps before entry
-
-- Current GitHub repository is private. Public source is required by the event; the owner must separately approve publication after a secret/history review.
-- Public demo post on X and completed submission form are not created by this release.
-- Owner must supply X/MoonPay credentials and confirm provider-supported account/merchant setup.
-- Development requests to 1Click and the holder indexer received HTTP 403. Live hosted routing and full holder checks cannot be claimed from that environment.
-- Financial live acceptance, independent security review and recovery drill remain unverified.
-- Before broader hosting access, give the Telegram maintenance endpoint independent authorization. The existing unattended updater relies on owner-private hosting.
-
-Architecture, scope and exact setup are in README.md and docs/. Describe only verified behavior in the final submission. Document which code was written after the hackathon announcement and distinguish any pre-existing foundation.
+The repository and hosted demo are public. A human still needs to publish the demo on X with **@NEARProtocol #NEARHackathon**, supply its actual public URL and complete the form. [Prepared checklist and draft](docs/hackathon-submission.md).

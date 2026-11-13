@@ -1,34 +1,39 @@
 # Porti submission preparation
 
-This file prepares the entry; it does not publish anything or submit the form.
+Updated 13 November 2026. This prepares assets and wording; it does not publish a post or submit a form.
 
-## Entry checklist
+## Ready assets
 
-- Confirm the latest official rules, including https://nearhackathon.com/HACKATHON.md. The linked Markdown could not be retrieved during the browser review; the official website and X article were read.
-- Verify which commits were written after the announcement; record the new NEAR integrations separately from any pre-existing foundation. The official site says code written since the announcement counts. Do not claim ineligible earlier work as new.
-- Complete the owner activation checklist and a repeatable demo from HACKATHON.md. Fix failures or label unsupported functionality before describing it as working.
-- Merge the integration branch `cloudflare-standalone` into `main` (the default branch judges will open) once CI is green on it. `main` currently lags by about 50 commits.
-- Review repository history and assets for secrets, private data and licensing. Get owner authorization to make `https://github.com/hoymick/porti-near` public; it remains private now.
-- Record a short demo with the real UI, masked personal data, visible action review and real evidence for any claimed settlement. Never show API keys, recovery phrases or payment credentials.
-- Publish a public X post saying the project was built for NEAR HACKATHON, tagging @NEARProtocol and #NEARHackathon, with video/screenshots.
-- Submit repository URL and actual demo-post URL by **14 November 2026, 23:59 UTC**. One submission per project. Recheck all details; the website offers manually reviewed change requests, not direct form editing.
+- Public app: <https://porti-near.hoymick240.workers.dev/> — choose Try demo, no login needed.
+- Public repository: <https://github.com/hoymick/porti-near>.
+- [Five authentic screenshots, timed demo script and X post draft](demo/README.md).
+- [Reproduction commands](../README.md#run-and-verify-from-a-clean-checkout) and [dated verification](verification-2026-11-13.md).
+- Production branch: `cloudflare-standalone`. Default `main` must contain the tested app and these docs before final submission; verify the branch heads rather than assuming a previous sync remains current.
 
-## Form fields to fill
+## Owner steps still required
 
-| Field | Prepared value / owner input |
+1. Recheck <https://nearhackathon.com/HACKATHON.md>. Current deadline: **14 November 2026, 23:59 UTC** / **15 November, 00:59 WAT**.
+2. Review the labelled sample demo and production limits. Do not claim live financial settlement from fixtures/tests.
+3. Publish a public X post with video or screenshots saying it was built at **NEAR HACKATHON**, tagging **@NEARProtocol #NEARHackathon**. Keep the hosted app URL accessible. A local-only demo would require video; Porti has a hosted walkthrough.
+4. Copy the actual public X post URL. No post URL exists in this draft.
+5. Confirm contributor list, contact, payout account, track selection, code provenance and any project-wide license. Git history starts 4 November but includes imported checkpoints, so do not claim every imported line was written in-window merely from timestamps. No pre-announcement baseline tag exists here.
+6. Review the exact form payload and submit one project entry before the deadline. These assets have not submitted it for you.
+
+## Form preparation
+
+| Field | Value / owner input |
 | --- | --- |
-| Project name | Porti |
-| Description | Use the draft below after reconciling it with the final verified demo. |
-| Team lead | Owner to confirm. |
-| Email | Owner to supply. |
-| Team size | Owner to confirm everyone who contributed. |
-| Tracks | AI Security & Defense; consider Unstoppable DeFi only with working demonstrated routing. |
-| NEAR payout account | Owner supplies and independently verifies exact account. |
-| Public repository | https://github.com/hoymick/porti-near — currently private; not submission-ready. |
-| Public X demo | Owner to publish; no fabricated URL. |
+| Name | Porti |
+| Public source | https://github.com/hoymick/porti-near |
+| Hosted app | https://porti-near.hoymick240.workers.dev/ |
+| Public X demo URL | Owner publishes and supplies actual URL |
+| Lead, email, team size | Owner confirms; do not invent |
+| NEAR payout account | Owner supplies and independently verifies |
+| Track | Select based on demonstrated evidence; do not claim perps/lending/vaults |
+| Description | Draft below, with verified limits retained |
 
 ## Description draft
 
-Porti is an anime-inspired NEAR AI Cloud companion that connects token research, wallet monitoring and reviewed financial workflows. Users can investigate tokens, receive Telegram observations and prepare payments to verified platform usernames. The agent opens purchase, staking and NEAR Intents swap reviews; users retain wallet signing authority. Server-side checks bind sender, amount, output network, recipient, slippage and refund destination before a wallet request. Porti separates model suggestions, signed actions and observed outcomes, and reports missing provider data honestly. Our goal is a friendly interface for using NEAR without hiding transaction details or giving an AI unrestricted wallet access.
+Porti is a friendly NEAR AI Cloud companion for token research and wallet-reviewed actions. It brings sampled holder evidence, charts, wallet identities and action preparation into one interface. The implementation integrates NEAR Intents / 1Click for supported native-NEAR-source swaps and Meta Pool for reviewed staking. Server checks bind the action's sender, amount, destination and review state; users retain wallet signing authority. Missing provider data and unresolved research checks stay visible. The hosted no-login walkthrough uses explicitly fictional data; automated checks passed 245 app and 25 contract tests, including mocked providers. Fresh funded settlement was not performed, and optional payment, media and social-provider setup gaps are documented.
 
-Only add claims of live X linking, card purchases or cross-chain settlement after owner acceptance succeeds. Do not claim all NEAR token coverage, audited security, end-to-end encrypted chats, autonomous custody, perps trading or a guaranteed rug probability.
+Do not claim audited security, complete token coverage, autonomous custody, guaranteed rug detection, implemented perps/lending/vaults, or successful live integrations absent from the verification evidence.
