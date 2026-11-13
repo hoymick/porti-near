@@ -2,7 +2,7 @@
 
 The landing page offers two ways in:
 
-- **Try demo:** sample data, no sign-in, no wallet, no funds. The Phone pocket simulator works in the demo.
+- **Try demo:** sample data, no sign-in, no wallet, no funds. The Phone pocket screen is available, but its default simulator number is not currently linked; a linked pocket is required for balance lookup.
 - **Sign in with NEAR wallet:** the wallet list (NEAR Connector) opens. The user picks a wallet and signs a one-time message. That signature is a NEP-413 message, not a transaction, so it costs no gas and sends no funds. The server then opens a session for that account and the full dashboard loads. **Sign out** sits in the top bar.
 
 ## How the server decides who you are

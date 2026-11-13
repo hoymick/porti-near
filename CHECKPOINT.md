@@ -1,9 +1,11 @@
-# Porti v0.14 checkpoint
+# Porti v0.14 — submission checkpoint, 13 November 2026
 
-Adds owner-configured X OAuth, signed MoonPay checkout preparation, private image attachments in Porti/friend chat, NEAR markets tables, and native-NEAR-source same/cross-chain 1Click swap reviews. Ethereum, Base, Arbitrum and BNB Chain are supported destination network families, conditional on the live catalog and quote. Existing Meta Pool staking and NEAR transfer evidence remain in place. Chat can open dedicated workflows, read market snapshots and cannot derive transfer authority from images.
+Audited application baseline: `7ee4c93d14f2232f073bd07caad8575f24d1849e`. Public landing and Try demo work; live identity uses NEAR-wallet sessions. This documentation update adds genuine public screenshots and a timed demonstration guide; it does not change financial execution.
 
-Setup: docs/commerce-setup.md. Transaction/recovery boundaries: docs/transactions.md. Judge walkthrough: HACKATHON.md. Submission preparation: docs/hackathon-submission.md.
+262 app tests across 42 files passed locally after the phone updates and in Node 22 CI; 25 pocket-contract tests passed in CI. Typecheck, regular/standalone builds, Rust formatting and clippy passed. Lint: 0 errors / 592 warnings. Dependency audit: 7 moderate / 0 high / 0 critical. [Evidence](docs/verification-2026-11-13.md).
 
-145 automated tests, type checking, lint (0 errors; known `any`/React-hook debt tracked as warnings) and the build pass at this checkpoint. Live funded acceptance was not performed. X/MoonPay credentials and trusted customer-IP configuration are owner tasks. Development 1Click catalog access returned HTTP 403. Image reads expire at 90 days; R2 lifecycle deletion must be configured. Site and repository remain private; no X post or hackathon submission was made.
+Direct chat transfer/swap/staking paths retain user signatures, valid-review checks and final evidence requirements. No fresh funded transfer, swap, stake, donation or purchase was executed.
 
-Current additions: setup-gated Seams internal wallet creation/unlock (docs/internal-wallet.md), Porti Care community requests and two-reviewer donation publication (docs/porti-care.md), and local-time automatic day/night with manual override. Owner must provision a compatible Seams service and configure independent charity reviewers; no real wallet creation, review or funded donation was performed.
+Deployment gaps: R2 absent; MoonPay, X, optional Seams and charity reviewers unconfigured; Telegram runner disabled; default phone example unlinked; real phone delivery unverified. Do not call these fully operational.
+
+See [README](README.md), [demo](docs/demo/README.md) and [submission checklist](docs/hackathon-submission.md). No X post or form was published. Owner still selects any project-wide license and substantiates eligible work/provenance.
