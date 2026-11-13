@@ -18,6 +18,20 @@ type Screen =
 
 export default function UssdSimulator() {
   const [phone, setPhone] = useState("+999000001");
+  // Each visitor gets their own test number, so their PIN tries and history are their own.
+  useEffect(() => {
+    let n: string | null = null;
+    try {
+      n = localStorage.getItem("porti-sim-phone");
+      if (!n || !/^\+999\d{6}$/.test(n)) {
+        n = "+999" + String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+        localStorage.setItem("porti-sim-phone", n);
+      }
+    } catch {
+      /* private mode: keep the default number */
+    }
+    if (n) setPhone(n);
+  }, []);
   const [screen, setScreen] = useState<Screen>({ kind: "idle" });
   const [input, setInput] = useState("");
   const [trail, setTrail] = useState<string[]>([]);
@@ -156,14 +170,14 @@ export default function UssdSimulator() {
             />
           </label>
           <p className="sc-fine">
-            Only <strong>+999</strong> numbers work here. They are test numbers and can only be linked to simulator pockets.
+            Only <strong>+999</strong> test numbers work here. They use a shared demo pocket on <strong>NEAR testnet</strong>: free test NEAR, the same contract and limits as mainnet.
           </p>
           <h3>Try it</h3>
           <ol>
             <li>Press the green call button.</li>
             <li>Reply <strong>1</strong> for Balance: what you can spend and how much of today’s limit is left.</li>
-            <li>Call again and reply <strong>2</strong> to send: type a Porti username (<strong>bob</strong> on the local sandbox), an amount like <strong>0.05</strong>, then the PIN (<strong>1234</strong> on the local sandbox).</li>
-            <li>Reply <strong>3</strong> for your last 3 sends, or <strong>4</strong> to freeze the pocket. Only the main wallet can unfreeze it.</li>
+            <li>Call again and reply <strong>2</strong> to send: type <strong>bob</strong>, an amount like <strong>0.05</strong>, then the demo PIN <strong>1234</strong>. Three wrong PINs lock sending for 15 minutes.</li>
+            <li>Reply <strong>3</strong> for your last 3 sends, or <strong>4</strong> to freeze the pocket. Normally only the main wallet can unfreeze it; this shared demo unfreezes itself after a minute so others can keep testing.</li>
           </ol>
           <h3>SMS inbox</h3>
           <p className="sc-fine">No messages yet. Codes and send receipts will appear here.</p>

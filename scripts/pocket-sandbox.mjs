@@ -4,12 +4,13 @@
 // Starts a sandbox on 127.0.0.1:3030, creates alice.sandbox (main wallet) and
 // bob.sandbox (recipient), runs the real one-transaction pocket setup, links the
 // +999000001 simulator number in local D1, and keeps the chain running until Ctrl-C.
-// Then run `npm run dev` with PORTI_USSD_RPC=http://127.0.0.1:3030 in .dev.vars.
+// It writes the PORTI_SIM_* settings into .dev.vars; restart `npm run dev` after.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { Sandbox, DEFAULT_ACCOUNT_ID, DEFAULT_PRIVATE_KEY } from "near-sandbox";
 import { Account, JsonRpcProvider, KeyPair, actions } from "near-api-js";
+import { setDevVars } from "./dev-vars.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const PORT = Number(process.env.SANDBOX_PORT || 3030);
@@ -76,7 +77,13 @@ try {
 
   const d1 = (...a) => spawnSync(process.execPath, [join(root, "scripts/d1-local.mjs"), ...a], { cwd: root, encoding: "utf8" });
   const link = d1("link-sim", PHONE, ids.pocket, PIN);
-  const named = d1("username", "bob", ids.bob);
+  setDevVars({
+    PORTI_SIM_RPC: sandbox.rpcUrl,
+    PORTI_SIM_POCKET: ids.pocket,
+    PORTI_SIM_POCKET_KEY: keys.server.toString(),
+    PORTI_SIM_RECIPIENTS: `bob=${ids.bob}`,
+    PORTI_SIM_PIN: PIN,
+  });
 
   console.log(`
 Sandbox ready at ${sandbox.rpcUrl}
@@ -86,12 +93,11 @@ Sandbox ready at ${sandbox.rpcUrl}
   pocket keys   ${accessKeys.keys.map((k) => `${k.public_key.slice(0, 16)}... ${k.access_key.permission === "FullAccess" ? "FULL ACCESS" : "function-call: " + k.access_key.permission.FunctionCall.method_names.join(",")}`).join("; ")}
   get_pocket    ${JSON.stringify(pocket)}
   simulator     ${PHONE} -> ${ids.pocket} ${link.status === 0 ? `(linked in local D1, PIN ${PIN})` : "(link FAILED: run npm run db:local -- migrate)"}
-  username      @bob -> ${ids.bob} ${named.status === 0 ? "(local profile)" : "(FAILED)"}
+  recipient     @bob -> ${ids.bob}
+  .dev.vars     PORTI_SIM_* set (any other +999 number links itself to this pocket, PIN ${PIN})
   state         ${statePath}
 
-Next: put these in .dev.vars, restart npm run dev, then dial (or use Phone pocket in the app):
-  PORTI_USSD_RPC=${sandbox.rpcUrl}
-  PORTI_POCKET_KEY=<serverKey from ${statePath}>
+Next: restart npm run dev, then dial (or use Phone pocket in the app):
   curl -X POST http://127.0.0.1:5173/api/ussd/sim -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text='
   curl -X POST http://127.0.0.1:5173/api/ussd/sim -d 'sessionId=s1&serviceCode=*384*1%23&phoneNumber=%2B999000001&text=1'
   Send: 2, then bob, then 0.05, then ${PIN}

@@ -208,3 +208,25 @@ test("Freeze reports refused, pending and unavailable outcomes plainly", async (
     assert.ok(r.length <= MAX_REPLY);
   }
 });
+
+test("demo recipients come only from the configured directory", async () => {
+  const { parseRecipients, directoryRecipient } = await import("../lib/ussd-core.mjs");
+  const dir = parseRecipients(" bob=porti-bob.testnet , Ada=ada.testnet,bad name=x.testnet,ok=,=x.testnet");
+  assert.deepEqual([...dir], [["bob", "porti-bob.testnet"], ["ada", "ada.testnet"]]);
+  assert.deepEqual(directoryRecipient(dir, "@Bob"), { username: "bob", wallet: "porti-bob.testnet" });
+  assert.throws(() => directoryRecipient(dir, "mallory"), { code: "USERNAME_NOT_FOUND" });
+  assert.equal(parseRecipients(undefined).size, 0);
+});
+
+test("simulator numbers link themselves to the demo pocket once, each with its own PIN lockout", async () => {
+  const { linkSimulatorPhone } = await import("../lib/ussd-core.mjs");
+  const { sql, adapter } = database();
+  await linkSimulatorPhone(adapter, "+999111111", "pocket.demo.testnet", "1234", NOW);
+  await linkSimulatorPhone(adapter, "+999111111", "pocket.other.testnet", "9999", NOW);
+  await linkSimulatorPhone(adapter, "+254712345678", "pocket.demo.testnet", "1234", NOW);
+  const rows = sql.prepare("SELECT phone,pocket_id,channel,pin_hash FROM ussd_phones").all();
+  assert.equal(rows.length, 1, "real numbers are never auto-linked");
+  assert.equal(rows[0].pocket_id, "pocket.demo.testnet", "an existing link is never replaced");
+  assert.equal(rows[0].channel, "simulator");
+  assert.ok(await pinMatches("1234", rows[0].pin_hash));
+});

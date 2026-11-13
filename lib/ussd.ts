@@ -5,35 +5,68 @@ import { resolveUsername } from "./near-profile";
 import { consumeLimit } from "./request-guard.mjs";
 import { DomainError } from "./errors.mjs";
 import {
+  DEMO_PIN,
+  directoryRecipient,
   end,
   handleUssd,
+  linkSimulatorPhone,
+  parseRecipients,
   isSimulatorPhone,
   parsePayload,
   tokenMatches,
 } from "./ussd-core.mjs";
 
-const DEFAULT_RPC = "https://rpc.mainnet.near.org";
+const MAINNET_RPC = "https://rpc.mainnet.near.org";
+const TESTNET_RPC = "https://rpc.testnet.near.org";
 const MAX_BODY = 4000;
 
-// Dev builds only: a loopback RPC (the local NEAR sandbox from
-// `npm run pocket:sandbox`) skips the mainnet chain-ID check. Production builds
-// compile `import.meta.env.DEV` to false, so they always require mainnet.
+/**
+ * Each channel runs on its own network with its own key:
+ * - live (a real phone line): NEAR mainnet, PORTI_POCKET_KEY, verified Porti usernames.
+ * - simulator (+999 numbers): NEAR testnet by default, so anyone can try it with
+ *   free test NEAR. PORTI_SIM_POCKET_KEY, recipients from PORTI_SIM_RECIPIENTS.
+ */
+type Net = { channel: "live" | "simulator"; rpc: string; chainId: "mainnet" | "testnet" | null; key: unknown };
+// Dev builds only: a loopback RPC (the local sandbox from `npm run pocket:sandbox`)
+// skips the chain-ID check. Production builds compile import.meta.env.DEV to false.
 const LOOPBACK_RPC = /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}\/?$/;
-async function localSandboxQuery(rpc: string, params: any) {
+
+function networkFor(channel: "live" | "simulator"): Net {
+  const e = env as any;
+  if (channel === "live") return { channel, rpc: e.PORTI_USSD_RPC || MAINNET_RPC, chainId: "mainnet", key: e.PORTI_POCKET_KEY };
+  const rpc = e.PORTI_SIM_RPC || TESTNET_RPC;
+  const loopback = import.meta.env.DEV && LOOPBACK_RPC.test(rpc);
+  return { channel, rpc, chainId: loopback ? null : "testnet", key: e.PORTI_SIM_POCKET_KEY };
+}
+
+async function rpcCall(rpc: string, method: string, params: any, timeoutMs = 5000) {
   const r = await fetch(rpc, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "ussd", method: "query", params }),
-    signal: AbortSignal.timeout(5000),
+    body: JSON.stringify({ jsonrpc: "2.0", id: "ussd", method, params }),
+    signal: AbortSignal.timeout(timeoutMs),
   }).catch(() => null);
   const d: any = r?.ok ? await r.json().catch(() => null) : null;
-  if (!d?.result || d.error)
-    throw new DomainError("RPC_READ_FAILED", "The local sandbox could not read this pocket.", 503);
+  // Older query endpoints report errors inside `result` with HTTP 200.
+  if (!d?.result || d.error || typeof d.result.error === "string")
+    throw new DomainError("RPC_READ_FAILED", "NEAR RPC could not read this pocket.", 503);
   return d.result;
 }
 
-/** Reads the pocket contract's `get_pocket` view on mainnet (validated chain ID). */
-export async function readPocket(pocketId: string) {
+const verifiedChains = new Map<string, string>();
+async function rpcQuery(net: Net, params: any) {
+  if (net.chainId === "mainnet") return createInvestigationReader(net.rpc).read("ussd", "query", params);
+  if (net.chainId && verifiedChains.get(net.rpc) !== net.chainId) {
+    const status = await rpcCall(net.rpc, "status", []);
+    if (status.chain_id !== net.chainId)
+      throw new DomainError("RPC_WRONG_CHAIN", `Expected NEAR ${net.chainId}.`, 503);
+    verifiedChains.set(net.rpc, net.chainId);
+  }
+  return rpcCall(net.rpc, "query", params);
+}
+
+/** Reads the pocket contract's `get_pocket` view (validated chain ID). */
+export async function readPocket(net: Net, pocketId: string) {
   const params = {
     request_type: "call_function",
     finality: "final",
@@ -41,7 +74,7 @@ export async function readPocket(pocketId: string) {
     method_name: "get_pocket",
     args_base64: "e30=", // {}
   };
-  const r: any = await rpcQuery(params);
+  const r: any = await rpcQuery(net, params);
   try {
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(r.result)));
   } catch {
@@ -49,15 +82,8 @@ export async function readPocket(pocketId: string) {
   }
 }
 
-async function rpcQuery(params: any) {
-  const rpc = (env as any).PORTI_USSD_RPC || DEFAULT_RPC;
-  return import.meta.env.DEV && LOOPBACK_RPC.test(rpc)
-    ? localSandboxQuery(rpc, params)
-    : createInvestigationReader(rpc).read("ussd", "query", params);
-}
-
-/** Recipient lookup: verified Porti usernames only (lib/near-profile.ts). */
-export async function resolveRecipient(name: string) {
+/** Live: verified Porti usernames only (lib/near-profile.ts). */
+async function resolveLiveRecipient(name: string) {
   const p: any = await resolveUsername(name);
   return { username: p.username, wallet: p.wallet };
 }
@@ -81,8 +107,8 @@ type CallResult =
  * it; the contract enforces the caps. One call per pocket at a time, because
  * the key's nonce must increase.
  */
-async function callPocket(pocketId: string, method: "send" | "freeze", args: object): Promise<CallResult> {
-  const secret = (env as any).PORTI_POCKET_KEY;
+async function callPocket(net: Net, pocketId: string, method: "send" | "freeze", args: object): Promise<CallResult> {
+  const secret = net.key;
   if (typeof secret !== "string" || !secret.startsWith("ed25519:"))
     throw new DomainError("POCKET_KEY_MISSING", "The pocket signing key is not configured.", 503);
   try {
@@ -91,7 +117,7 @@ async function callPocket(pocketId: string, method: "send" | "freeze", args: obj
     if (e?.code === "RATE_LIMITED") throw new DomainError("POCKET_BUSY", "A pocket call is already in progress.", 429);
     throw e;
   }
-  const r = await signAndSubmit(secret, pocketId, method, args).catch(async (e) => {
+  const r = await signAndSubmit(net, secret, pocketId, method, args).catch(async (e) => {
     await releasePocket(pocketId);
     throw e;
   });
@@ -102,16 +128,16 @@ async function callPocket(pocketId: string, method: "send" | "freeze", args: obj
 }
 
 /** send(receiver_id, amount): returns on_send's result, false = transfer failed and refunded. */
-export async function sendFromPocket({ pocketId, receiverId, amount }: { pocketId: string; receiverId: string; amount: string }) {
-  const r = await callPocket(pocketId, "send", { receiver_id: receiverId, amount });
+async function sendFromPocket(net: Net, { pocketId, receiverId, amount }: { pocketId: string; receiverId: string; amount: string }) {
+  const r = await callPocket(net, pocketId, "send", { receiver_id: receiverId, amount });
   if (r.status !== "ok") return r;
   return r.value === "true"
     ? { status: "sent" as const, hash: r.hash }
     : { status: "refused" as const, hash: r.hash, reason: "transfer_failed" };
 }
 
-export async function freezePocket({ pocketId }: { pocketId: string }) {
-  const r = await callPocket(pocketId, "freeze", {});
+async function freezePocket(net: Net, { pocketId }: { pocketId: string }) {
+  const r = await callPocket(net, pocketId, "freeze", {});
   return r.status === "ok" ? { status: "done" as const, hash: r.hash } : r;
 }
 
@@ -124,23 +150,31 @@ async function releasePocket(pocketId: string) {
     .catch(() => {});
 }
 
-async function signAndSubmit(secret: string, pocketId: string, method: string, args: object): Promise<CallResult> {
+async function signAndSubmit(
+  net: Net,
+  secret: string,
+  pocketId: string,
+  method: string,
+  args: object,
+  signerId = pocketId,
+  deposit = BigInt(0),
+): Promise<CallResult> {
   const key = KeyPair.fromString(secret as any);
   const publicKey = key.getPublicKey();
-  const access: any = await rpcQuery({
+  const access: any = await rpcQuery(net, {
     request_type: "view_access_key",
     finality: "final",
-    account_id: pocketId,
+    account_id: signerId,
     public_key: publicKey.toString(),
   });
   if (!Number.isSafeInteger(access?.nonce) || typeof access?.block_hash !== "string")
     throw new DomainError("POCKET_KEY_MISSING", "This pocket has not added the Porti key.", 503);
   const tx = createTransaction(
-    pocketId,
+    signerId,
     publicKey,
     pocketId,
     BigInt(access.nonce) + BigInt(1),
-    [actions.functionCall(method, args, SEND_GAS, BigInt(0))],
+    [actions.functionCall(method, args, SEND_GAS, deposit)],
     baseDecode(access.block_hash),
   );
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(tx.encode())));
@@ -149,7 +183,7 @@ async function signAndSubmit(secret: string, pocketId: string, method: string, a
     transaction: tx,
     signature: new Signature({ keyType: 0, data: key.sign(digest).signature }),
   });
-  const rpc = (env as any).PORTI_USSD_RPC || DEFAULT_RPC;
+  const rpc = net.rpc;
   // Wait for execution briefly so the user hears the real outcome; on a slow
   // network the session ends with "Submitted" and the hash, never a resend.
   let d: any = null;
@@ -174,6 +208,37 @@ async function signAndSubmit(secret: string, pocketId: string, method: string, a
   if (status && "Failure" in status) return { status: "refused", hash, reason: panicOf(status.Failure) };
   if (status && typeof status.SuccessValue === "string") return { status: "ok", hash, value: atob(status.SuccessValue) };
   return { status: "pending", hash };
+}
+
+// ---- Public testnet demo: keep the shared pocket usable ----
+// One visitor's Freeze must not block everyone. On the simulator only, and only
+// when PORTI_SIM_OWNER_KEY (the testnet demo owner's key) is set, the server
+// calls the owner-only unfreeze() a minute after a freeze. Never on mainnet.
+const DEMO_FROZEN_MS = 60_000;
+const frozenMark = (pocketId: string) => JSON.stringify(["sim-frozen", pocketId]);
+
+async function demoFreezePocket(net: Net, f: { pocketId: string }) {
+  const r = await freezePocket(net, f);
+  if (r.status === "done")
+    await env.DB?.prepare("INSERT OR REPLACE INTO porti_limits (id,count,expires_at) VALUES (?,1,?)")
+      .bind(frozenMark(f.pocketId), Date.now() + DEMO_FROZEN_MS)
+      .run();
+  return r;
+}
+
+async function demoReadPocket(net: Net, pocketId: string) {
+  const v = await readPocket(net, pocketId);
+  const ownerKey = (env as any).PORTI_SIM_OWNER_KEY;
+  if (!v.frozen || net.channel !== "simulator" || typeof ownerKey !== "string" || !ownerKey.startsWith("ed25519:")) return v;
+  const mark: any = await env.DB?.prepare("SELECT expires_at AS expiresAt FROM porti_limits WHERE id=?").bind(frozenMark(pocketId)).first();
+  if (mark && mark.expiresAt > Date.now()) return v;
+  try {
+    await consumeLimit(env.DB, "pocket-owner:" + pocketId, "demo-unfreeze", 1, 15_000);
+    const r = await signAndSubmit(net, ownerKey, pocketId, "unfreeze", {}, v.owner_id, BigInt(1));
+    return r.status === "ok" ? { ...v, frozen: false } : v;
+  } catch {
+    return v; // stays frozen; the next dial tries again
+  }
 }
 
 function reply(text: string, status = 200) {
@@ -222,7 +287,20 @@ export async function ussdRequest(request: Request, channel: "live" | "simulator
       const ip = request.headers.get("CF-Connecting-IP") || "local";
       await consumeLimit(env.DB, "ussd-ip:" + ip, "ussd-sim", 60, 60_000);
     }
-    return reply(await handleUssd(p, channel, { db: env.DB, readPocket, resolveRecipient, sendFromPocket, freezePocket }));
+    const net = networkFor(channel);
+    const e = env as any;
+    if (channel === "simulator" && e.PORTI_SIM_POCKET)
+      await linkSimulatorPhone(env.DB, p.phone, e.PORTI_SIM_POCKET, e.PORTI_SIM_PIN || DEMO_PIN);
+    const directory = parseRecipients(e.PORTI_SIM_RECIPIENTS);
+    return reply(
+      await handleUssd(p, channel, {
+        db: env.DB,
+        readPocket: (id: string) => (channel === "simulator" ? demoReadPocket(net, id) : readPocket(net, id)),
+        resolveRecipient: channel === "live" ? resolveLiveRecipient : async (name: string) => directoryRecipient(directory, name),
+        sendFromPocket: (s: any) => sendFromPocket(net, s),
+        freezePocket: (f: any) => (channel === "simulator" ? demoFreezePocket(net, f) : freezePocket(net, f)),
+      }),
+    );
   } catch (e: any) {
     console.warn(
       JSON.stringify({ component: "porti-ussd", channel, code: e?.code || "INTERNAL_ERROR" }),
