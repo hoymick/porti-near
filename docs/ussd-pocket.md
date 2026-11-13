@@ -63,6 +63,11 @@ Requires a named parent account. Porti's implicit device wallets can't create `p
 - PINs are PBKDF2-SHA256 hashes with a per-number salt. Three wrong PINs lock sending for 15 minutes, while Balance keeps working. A number without a PIN can't send.
 - Contract refusals (frozen, over a cap, insufficient balance, a failed transfer that was refunded) are reported in plain words.
 
+## Last 3 sends and Freeze
+
+- **3. Last 3 sends:** reads `ussd_sends` for this number. Every send attempt is recorded with its outcome (`sent`, `refused`, `pending`), and the list shows `sent` and `pending` (marked "submitted").
+- **4. Freeze pocket:** confirm with `1`, and the pocket key calls `freeze()`. No PIN is needed: freezing only makes the pocket safer and has to be quick for a lost phone. It also works while sending is PIN-locked. Only the main wallet can `unfreeze`.
+
 Local: `npm run pocket:sandbox` links `+999000001` with PIN `1234` and creates `@bob → bob.sandbox`. Put `PORTI_USSD_RPC` and `PORTI_POCKET_KEY` (the `serverKey` in `.wrangler/pocket-sandbox.json`) in `.dev.vars`.
 
 ## Service seam (Michael ↔ Jeff)

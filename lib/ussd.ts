@@ -70,30 +70,49 @@ function panicOf(failure: any) {
   return m ? m[1] : "refused";
 }
 
+type CallResult =
+  | { status: "ok"; hash: string; value: string }
+  | { status: "refused"; hash: string; reason: string }
+  | { status: "pending"; hash: string };
+
 /**
- * Signs `send(receiver_id, amount)` with the pocket's function-call key
- * (PORTI_POCKET_KEY, a Worker secret) and submits it. The key can only call
- * send/freeze on pockets that added it; the contract enforces the caps.
- * One send per pocket at a time, because the key's nonce must increase.
+ * Calls a pocket method with the pocket's function-call key (PORTI_POCKET_KEY,
+ * a Worker secret). That key can only call send/freeze on pockets that added
+ * it; the contract enforces the caps. One call per pocket at a time, because
+ * the key's nonce must increase.
  */
-export async function sendFromPocket({ pocketId, receiverId, amount }: { pocketId: string; receiverId: string; amount: string }) {
+async function callPocket(pocketId: string, method: "send" | "freeze", args: object): Promise<CallResult> {
   const secret = (env as any).PORTI_POCKET_KEY;
   if (typeof secret !== "string" || !secret.startsWith("ed25519:"))
     throw new DomainError("POCKET_KEY_MISSING", "The pocket signing key is not configured.", 503);
   try {
     await consumeLimit(env.DB, "pocket:" + pocketId, "pocket-send", 1, 15_000);
   } catch (e: any) {
-    if (e?.code === "RATE_LIMITED") throw new DomainError("POCKET_BUSY", "A send is already in progress.", 429);
+    if (e?.code === "RATE_LIMITED") throw new DomainError("POCKET_BUSY", "A pocket call is already in progress.", 429);
     throw e;
   }
-  const r = await signAndSubmit(secret, pocketId, receiverId, amount).catch(async (e) => {
+  const r = await signAndSubmit(secret, pocketId, method, args).catch(async (e) => {
     await releasePocket(pocketId);
     throw e;
   });
-  // A final outcome frees the pocket at once. A pending send keeps the lock
+  // A final outcome frees the pocket at once. A pending call keeps the lock
   // until the window ends, since its nonce may still be in flight.
   if (r.status !== "pending") await releasePocket(pocketId);
   return r;
+}
+
+/** send(receiver_id, amount): returns on_send's result, false = transfer failed and refunded. */
+export async function sendFromPocket({ pocketId, receiverId, amount }: { pocketId: string; receiverId: string; amount: string }) {
+  const r = await callPocket(pocketId, "send", { receiver_id: receiverId, amount });
+  if (r.status !== "ok") return r;
+  return r.value === "true"
+    ? { status: "sent" as const, hash: r.hash }
+    : { status: "refused" as const, hash: r.hash, reason: "transfer_failed" };
+}
+
+export async function freezePocket({ pocketId }: { pocketId: string }) {
+  const r = await callPocket(pocketId, "freeze", {});
+  return r.status === "ok" ? { status: "done" as const, hash: r.hash } : r;
 }
 
 async function releasePocket(pocketId: string) {
@@ -105,7 +124,7 @@ async function releasePocket(pocketId: string) {
     .catch(() => {});
 }
 
-async function signAndSubmit(secret: string, pocketId: string, receiverId: string, amount: string) {
+async function signAndSubmit(secret: string, pocketId: string, method: string, args: object): Promise<CallResult> {
   const key = KeyPair.fromString(secret as any);
   const publicKey = key.getPublicKey();
   const access: any = await rpcQuery({
@@ -121,7 +140,7 @@ async function signAndSubmit(secret: string, pocketId: string, receiverId: strin
     publicKey,
     pocketId,
     BigInt(access.nonce) + BigInt(1),
-    [actions.functionCall("send", { receiver_id: receiverId, amount }, SEND_GAS, BigInt(0))],
+    [actions.functionCall(method, args, SEND_GAS, BigInt(0))],
     baseDecode(access.block_hash),
   );
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(tx.encode())));
@@ -140,7 +159,7 @@ async function signAndSubmit(secret: string, pocketId: string, receiverId: strin
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: "ussd-send",
+        id: "ussd-" + method,
         method: "send_tx",
         params: { signed_tx_base64: btoa(String.fromCharCode(...signed.encode())), wait_until: "EXECUTED_OPTIMISTIC" },
       }),
@@ -148,18 +167,13 @@ async function signAndSubmit(secret: string, pocketId: string, receiverId: strin
     });
     d = await r.json().catch(() => null);
   } catch {
-    return { status: "pending" as const, hash };
+    return { status: "pending", hash };
   }
-  if (d?.error?.cause?.name === "INVALID_TRANSACTION")
-    return { status: "refused" as const, hash, reason: "not accepted" };
+  if (d?.error?.cause?.name === "INVALID_TRANSACTION") return { status: "refused", hash, reason: "not accepted" };
   const status = d?.result?.status;
-  if (status && "Failure" in status) return { status: "refused" as const, hash, reason: panicOf(status.Failure) };
-  if (status && typeof status.SuccessValue === "string") {
-    // send() returns on_send's result: false means the transfer failed and was refunded.
-    const ok = atob(status.SuccessValue) === "true";
-    return ok ? { status: "sent" as const, hash } : { status: "refused" as const, hash, reason: "transfer_failed" };
-  }
-  return { status: "pending" as const, hash };
+  if (status && "Failure" in status) return { status: "refused", hash, reason: panicOf(status.Failure) };
+  if (status && typeof status.SuccessValue === "string") return { status: "ok", hash, value: atob(status.SuccessValue) };
+  return { status: "pending", hash };
 }
 
 function reply(text: string, status = 200) {
@@ -208,7 +222,7 @@ export async function ussdRequest(request: Request, channel: "live" | "simulator
       const ip = request.headers.get("CF-Connecting-IP") || "local";
       await consumeLimit(env.DB, "ussd-ip:" + ip, "ussd-sim", 60, 60_000);
     }
-    return reply(await handleUssd(p, channel, { db: env.DB, readPocket, resolveRecipient, sendFromPocket }));
+    return reply(await handleUssd(p, channel, { db: env.DB, readPocket, resolveRecipient, sendFromPocket, freezePocket }));
   } catch (e: any) {
     console.warn(
       JSON.stringify({ component: "porti-ussd", channel, code: e?.code || "INTERNAL_ERROR" }),

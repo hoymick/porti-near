@@ -139,7 +139,7 @@ test("provider failures end the session with a plain message; unknown choices ar
   await other.dial("");
   assert.match(await other.dial("9"), /^END Invalid choice/);
   await other.dial("", { sessionId: "s2" });
-  assert.match(await other.dial("3", { sessionId: "s2" }), /^END This option is coming soon/);
+  assert.match(await other.dial("3", { sessionId: "s2" }), /^END No sends yet from this number\./);
 });
 
 test("every reply fits the USSD length limit", async () => {
